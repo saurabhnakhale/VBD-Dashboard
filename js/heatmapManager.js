@@ -1,6 +1,5 @@
 /**
- * HeatmapManager.js - Renders an interactive 2D Case Density Matrix Heatmap
- * representing disease intensity across Zones (1-10) and Prabhags/Months.
+ * HeatmapManager.js - Renders Iwosan-style 2D Outbreak Density Matrix
  */
 
 const HeatmapManager = {
@@ -8,8 +7,7 @@ const HeatmapManager = {
     const container = document.getElementById('heatmap-container');
     if (!container) return;
 
-    // Collect matrix data: Zone (Rows 1..10) vs Top Prabhags or Months
-    const months = ['June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const months = ['June', 'July', 'August', 'September', 'October'];
     const matrix = {};
 
     for (let z = 1; z <= 10; z++) {
@@ -28,54 +26,51 @@ const HeatmapManager = {
 
     if (maxVal === 0) maxVal = 1;
 
-    // Generate HTML Table Heatmap
     let html = `
-      <div class="heatmap-wrapper">
-        <table class="heatmap-table">
-          <thead>
-            <tr>
-              <th>Zone / Month</th>
-              ${months.map(m => `<th>${m}</th>`).join('')}
-              <th>Total Intensity</th>
-            </tr>
-          </thead>
-          <tbody>
+      <table class="heatmap-grid-table">
+        <thead>
+          <tr>
+            <th style="text-align: left;">Zone / Month</th>
+            ${months.map(m => `<th>${m}</th>`).join('')}
+            <th>Total Intensity</th>
+          </tr>
+        </thead>
+        <tbody>
     `;
 
     for (let z = 1; z <= 10; z++) {
       const zoneName = `Zone ${z} (${ZONE_MAP[z] ? ZONE_MAP[z].split(' ')[0] : ''})`;
       let zoneTotal = 0;
 
-      html += `<tr><td style="text-align: left; font-weight: 700; color: var(--text-primary);">${zoneName}</td>`;
+      html += `<tr><td style="text-align: left; font-weight: 700; color: var(--text-primary); font-size: 0.78rem;">${zoneName}</td>`;
 
       months.forEach(m => {
         const count = matrix[z][m] || 0;
         zoneTotal += count;
         const ratio = count / maxVal;
         
-        // Color scale calculation: dark blue -> amber -> bright red
-        let bg = 'rgba(30, 41, 59, 0.4)';
+        let bg = 'rgba(26, 34, 59, 0.4)';
+        let textColor = 'var(--text-muted)';
         if (count > 0) {
-          const alpha = 0.3 + (ratio * 0.7);
-          if (ratio > 0.6) bg = `rgba(239, 68, 68, ${alpha})`;
-          else if (ratio > 0.3) bg = `rgba(245, 158, 11, ${alpha})`;
-          else bg = `rgba(99, 102, 241, ${alpha})`;
+          const alpha = 0.35 + (ratio * 0.65);
+          if (ratio > 0.5) { bg = `rgba(255, 42, 95, ${alpha})`; textColor = '#ffffff'; }
+          else if (ratio > 0.25) { bg = `rgba(255, 183, 3, ${alpha})`; textColor = '#ffffff'; }
+          else { bg = `rgba(37, 99, 235, ${alpha})`; textColor = '#ffffff'; }
         }
 
         html += `
-          <td style="background: ${bg};" title="${zoneName} - ${m}: ${count} cases">
+          <td style="background: ${bg}; color: ${textColor};" title="${zoneName} - ${m}: ${count} cases">
             ${count > 0 ? count : '-'}
           </td>
         `;
       });
 
-      html += `<td style="font-weight: 800; color: var(--accent-secondary);">${zoneTotal}</td></tr>`;
+      html += `<td style="font-weight: 800; color: var(--accent-pink);">${zoneTotal}</td></tr>`;
     }
 
     html += `
-          </tbody>
-        </table>
-      </div>
+        </tbody>
+      </table>
     `;
 
     container.innerHTML = html;

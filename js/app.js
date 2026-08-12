@@ -1,6 +1,5 @@
 /**
- * App.js - Application Main Controller
- * Handles global state, filter events, search, table pagination, CSV export, and theme toggling.
+ * App.js - Application Main Controller (Iwosan Healthcare Theme)
  */
 
 const App = {
@@ -8,14 +7,13 @@ const App = {
   filteredPatients: [],
   highRiskAreas: [],
   
-  // Table Pagination state
   currentPage: 1,
   pageSize: 15,
+  activePillFilter: 'ALL',
 
   async init() {
-    console.log("[App] Starting Vector-Borne Disease Dashboard...");
+    console.log("[App] Initializing Iwosan-style Healthcare Dashboard...");
     
-    // Theme setup
     this.setupThemeToggle();
 
     try {
@@ -30,18 +28,17 @@ const App = {
 
       console.log("[App] Dashboard successfully initialized!");
     } catch (err) {
-      console.error("[App] Failed to initialize dashboard:", err);
+      console.error("[App] Error initializing dashboard:", err);
     }
   },
 
   setupThemeToggle() {
-    const btn = document.getElementById('theme-toggle-btn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', newTheme);
-      btn.innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+    const switchEl = document.getElementById('theme-toggle-switch');
+    if (!switchEl) return;
+
+    switchEl.addEventListener('change', (e) => {
+      const theme = e.target.checked ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
     });
   },
 
@@ -101,7 +98,6 @@ const App = {
   },
 
   bindEvents() {
-    // Slicer controls
     const searchInput = document.getElementById('filter-search');
     const diseaseSelect = document.getElementById('filter-disease');
     const zoneSelect = document.getElementById('filter-zone');
@@ -136,15 +132,24 @@ const App = {
         if (monthSelect) monthSelect.value = 'ALL';
         if (ageSelect) ageSelect.value = 'ALL';
         if (facilitySelect) facilitySelect.value = 'ALL';
+        this.activePillFilter = 'ALL';
+        this.updatePillFilterButtons();
         this.applyFiltersAndRender();
       });
     }
 
-    if (exportBtn) {
-      exportBtn.addEventListener('click', () => this.exportTableToCSV());
-    }
+    if (exportBtn) exportBtn.addEventListener('click', () => this.exportTableToCSV());
 
-    // Pagination controls
+    // Table Pill Filter Buttons
+    document.querySelectorAll('.pill-btn[data-filter]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        this.activePillFilter = e.target.getAttribute('data-filter');
+        this.updatePillFilterButtons();
+        this.applyFiltersAndRender();
+      });
+    });
+
+    // Pagination
     const prevBtn = document.getElementById('btn-prev-page');
     const nextBtn = document.getElementById('btn-next-page');
 
@@ -168,6 +173,16 @@ const App = {
     }
   },
 
+  updatePillFilterButtons() {
+    document.querySelectorAll('.pill-btn[data-filter]').forEach(btn => {
+      if (btn.getAttribute('data-filter') === this.activePillFilter) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  },
+
   applyFiltersAndRender() {
     const searchVal = (document.getElementById('filter-search')?.value || '').toLowerCase().trim();
     const diseaseVal = document.getElementById('filter-disease')?.value || 'ALL';
@@ -178,42 +193,78 @@ const App = {
     const facilityVal = document.getElementById('filter-facility')?.value || 'ALL';
 
     this.filteredPatients = this.allPatients.filter(p => {
-      // Search term match
+      // Search
       if (searchVal) {
         const matchStr = `${p.name} ${p.address} ${p.hospital} ${p.disease} ${p.zoneName}`.toLowerCase();
         if (!matchStr.includes(searchVal)) return false;
       }
 
-      // Disease match
+      // Disease
       if (diseaseVal !== 'ALL' && p.disease !== diseaseVal) return false;
 
-      // Zone match
+      // Zone
       if (zoneVal !== 'ALL' && p.zoneNum !== parseInt(zoneVal, 10)) return false;
 
-      // Prabhag match
+      // Prabhag
       if (prabhagVal !== 'ALL' && p.prabhagNum !== parseInt(prabhagVal, 10)) return false;
 
-      // Month match
+      // Month
       if (monthVal !== 'ALL' && p.month !== monthVal) return false;
 
-      // Age group match
+      // Age group
       if (ageVal !== 'ALL' && p.ageGroup !== ageVal) return false;
 
-      // Facility type match
+      // Facility type
       if (facilityVal !== 'ALL' && p.facilityType !== facilityVal) return false;
+
+      // Pill filter
+      if (this.activePillFilter === 'Chikungunya' && !p.disease.includes('Chikungunya')) return false;
+      if (this.activePillFilter === 'Dengue' && !p.disease.includes('Dengue')) return false;
+      if (this.activePillFilter === 'HIGHRISK' && !p.isHighRiskMatch) return false;
 
       return true;
     });
 
-    // Reset pagination to page 1
     this.currentPage = 1;
 
-    // Trigger visual updates
+    // Render components
     KPIManager.update(this.filteredPatients, this.allPatients.length);
     ChartManager.renderAll(this.filteredPatients);
     HeatmapManager.render(this.filteredPatients);
     MapManager.render(this.filteredPatients, this.highRiskAreas);
+    this.renderHospitalsList();
     this.renderTable();
+  },
+
+  renderHospitalsList() {
+    const container = document.getElementById('hospital-list-container');
+    if (!container) return;
+
+    const hospMap = {};
+    this.filteredPatients.forEach(p => {
+      const h = p.hospital || 'Unspecified';
+      hospMap[h] = (hospMap[h] || 0) + 1;
+    });
+
+    const sorted = Object.entries(hospMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    let html = '';
+    sorted.forEach(([name, count]) => {
+      html += `
+        <div class="hospital-item">
+          <div class="hospital-info">
+            <div class="hospital-avatar"><i class="fa-solid fa-hospital"></i></div>
+            <div>
+              <div class="hospital-name">${name}</div>
+              <div class="hospital-role">Health Facility Node</div>
+            </div>
+          </div>
+          <div class="hospital-count">${count} Cases</div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html || `<div style="text-align: center; color: var(--text-muted);">No facilities matching filters</div>`;
   },
 
   renderTable() {
@@ -236,12 +287,11 @@ const App = {
 
     let html = '';
     pageData.forEach(p => {
-      let diseaseClass = 'tag-other';
-      if (p.disease.includes('Chikungunya')) diseaseClass = 'tag-chikungunya';
-      else if (p.disease.includes('Dengue')) diseaseClass = 'tag-dengue';
+      let diseaseTagClass = 'tag-chikungunya';
+      if (p.disease.includes('Dengue')) diseaseTagClass = 'tag-dengue';
 
-      const highRiskBadge = p.isHighRiskMatch 
-        ? `<span title="Matched Sheet 2 High Risk Area: ${p.matchedHighRiskLocality}" style="color: #ef4444; font-weight: bold;"><i class="fa-solid fa-triangle-exclamation"></i> High Risk</span>` 
+      const highRiskTag = p.isHighRiskMatch 
+        ? `<span style="color: var(--accent-pink); font-weight: 800;"><i class="fa-solid fa-triangle-exclamation"></i> Sheet 2 Match</span>`
         : `<span style="color: var(--text-muted);">Standard</span>`;
 
       html += `
@@ -252,17 +302,17 @@ const App = {
           <td>${p.address}</td>
           <td>${p.age}</td>
           <td>${p.sex}</td>
-          <td><span class="disease-tag ${diseaseClass}">${p.disease}</span></td>
+          <td><span class="tag-badge ${diseaseTagClass}">${p.disease}</span></td>
           <td>${p.hospital}</td>
           <td>${p.rawDate || '-'}</td>
           <td>Zone ${p.zoneNum}</td>
           <td>Prabhag ${p.prabhagNum}</td>
-          <td>${highRiskBadge}</td>
+          <td>${highRiskTag}</td>
         </tr>
       `;
     });
 
-    tbody.innerHTML = html || `<tr><td colspan="12" style="text-align:center; padding: 2rem; color: var(--text-muted);">No records found matching current slicers.</td></tr>`;
+    tbody.innerHTML = html || `<tr><td colspan="12" style="text-align:center; padding: 2rem; color: var(--text-muted);">No records found.</td></tr>`;
 
     if (pageInfo) pageInfo.textContent = `Page ${this.currentPage} of ${totalPages}`;
     if (countInfo) countInfo.textContent = `Showing ${startIdx + (total > 0 ? 1 : 0)}-${endIdx} of ${total} records`;
@@ -273,7 +323,7 @@ const App = {
 
   exportTableToCSV() {
     if (!this.filteredPatients || this.filteredPatients.length === 0) {
-      alert("No data available to export.");
+      alert("No data to export.");
       return;
     }
 
@@ -294,14 +344,13 @@ const App = {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `vbd_linelist_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `iwosan_vbd_export_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
 };
 
-// Start application when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
   App.init();
 });
