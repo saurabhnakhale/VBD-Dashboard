@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vector-Borne Disease (VBD) Interactive Health Dashboard - Nagpur Municipal Corporation</title>
+  <meta name="description" content="Interactive healthcare surveillance dashboard analyzing Chikungunya and Dengue outbreak linelists, spatial risk zones, and hospital notifications across Nagpur.">
+
+  <!-- External CDNs -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="css/styles.css">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="brand-container">
+        <div class="brand-icon">
+          <i class="fa-solid fa-mosquito"></i>
+        </div>
+        <div>
+          <h1 class="brand-title">Nagpur VBD Health Surveillance</h1>
+          <p class="brand-subtitle">Vector-Borne Disease Linelist & Spatial High-Risk Area Analytics (Sheet 1 & Sheet 2 Integrated)</p>
+        </div>
+      </div>
+      <div class="navbar-actions">
+        <div class="live-badge">
+          <span class="pulse-dot"></span> Live Data Stream
+        </div>
+        <button id="theme-toggle-btn" class="btn-icon" title="Toggle Light/Dark Theme">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Slicers & Dynamic Filter Toolbar -->
+    <section class="filter-bar">
+      <div class="filter-group">
+        <label class="filter-label" for="filter-search"><i class="fa-solid fa-magnifying-glass"></i> Search</label>
+        <input type="text" id="filter-search" class="filter-control" placeholder="Search patient, address, hospital...">
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label" for="filter-disease"><i class="fa-solid fa-virus"></i> Disease</label>
+        <select id="filter-disease" class="filter-control">
+          <option value="ALL">All Diseases</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label" for="filter-zone"><i class="fa-solid fa-map-location-dot"></i> Zone</label>
+        <select id="filter-zone" class="filter-control">
+          <option value="ALL">All Zones (1-10)</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label" for="filter-prabhag"><i class="fa-solid fa-location-crosshairs"></i> Prabhag</label>
+        <select id="filter-prabhag" class="filter-control">
+          <option value="ALL">All Prabhags</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label" for="filter-month"><i class="fa-solid fa-calendar-days"></i> Month</label>
+        <select id="filter-month" class="filter-control">
+          <option value="ALL">All Months</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label" for="filter-age-group"><i class="fa-solid fa-users"></i> Age Group</label>
+        <select id="filter-age-group" class="filter-control">
+          <option value="ALL">All Age Groups</option>
+          <option value="Pediatric (<15)">Pediatric (&lt;15 yrs)</option>
+          <option value="Youth (15-34)">Youth (15-34 yrs)</option>
+          <option value="Adult (35-59)">Adult (35-59 yrs)</option>
+          <option value="Elderly (60+)">Elderly (60+ yrs)</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label class="filter-label" for="filter-facility"><i class="fa-solid fa-hospital-user"></i> Facility Type</label>
+        <select id="filter-facility" class="filter-control">
+          <option value="ALL">All Facilities</option>
+          <option value="Urban Primary Health Center (UPHC)">Urban Primary Health Centers (UPHC)</option>
+          <option value="Tertiary Government Hospital">Tertiary Government Hospitals</option>
+          <option value="Private Hospital / Lab">Private Hospitals & Labs</option>
+        </select>
+      </div>
+
+      <button id="filter-reset-btn" class="filter-reset-btn">
+        <i class="fa-solid fa-rotate-left"></i> Reset
+      </button>
+    </section>
+
+    <!-- Main Dashboard Workspace -->
+    <main class="dashboard-body">
+
+      <!-- Section 1: 5 Healthcare KPIs -->
+      <section class="kpi-grid">
+        <!-- KPI 1 -->
+        <div class="kpi-card kpi-info">
+          <div class="kpi-header">
+            <span class="kpi-title">Total Notified Cases</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-clipboard-user"></i></div>
+          </div>
+          <div id="kpi-total-cases" class="kpi-value">--</div>
+          <div id="kpi-total-subtext" class="kpi-subtext">Loading linelist records...</div>
+        </div>
+
+        <!-- KPI 2 -->
+        <div class="kpi-card kpi-purple">
+          <div class="kpi-header">
+            <span class="kpi-title">Dominant Disease</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-disease"></i></div>
+          </div>
+          <div id="kpi-dominant-disease" class="kpi-value">--</div>
+          <div id="kpi-dominant-subtext" class="kpi-subtext">Outbreak spectrum ratio</div>
+        </div>
+
+        <!-- KPI 3 -->
+        <div class="kpi-card kpi-warning">
+          <div class="kpi-header">
+            <span class="kpi-title">Vulnerable Group Rate</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-person-breastfeeding"></i></div>
+          </div>
+          <div id="kpi-vulnerable-rate" class="kpi-value">--</div>
+          <div id="kpi-vulnerable-subtext" class="kpi-subtext">Children (&lt;15) &amp; Seniors (60+)</div>
+        </div>
+
+        <!-- KPI 4 -->
+        <div class="kpi-card kpi-danger">
+          <div class="kpi-header">
+            <span class="kpi-title">Highest Burden Epicenter</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-fire-flame-curved"></i></div>
+          </div>
+          <div id="kpi-epicenter-zone" class="kpi-value">--</div>
+          <div id="kpi-epicenter-subtext" class="kpi-subtext">Top reporting zone</div>
+        </div>
+
+        <!-- KPI 5 -->
+        <div class="kpi-card kpi-success">
+          <div class="kpi-header">
+            <span class="kpi-title">UPHC Primary Care Burden</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-house-medical"></i></div>
+          </div>
+          <div id="kpi-facility-uphc" class="kpi-value">--</div>
+          <div id="kpi-facility-subtext" class="kpi-subtext">Urban Health Center proportion</div>
+        </div>
+      </section>
+
+      <!-- Section 2: Visualizations Grid (Row 1) -->
+      <section class="dashboard-grid-2">
+        <!-- Chart 1: Epidemic Curve -->
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i class="fa-solid fa-chart-line card-title-icon"></i>
+              <div>
+                <h3 class="card-title">1. Epidemic Curve &amp; Temporal Surge</h3>
+                <p class="card-subtitle">Notification date timeline by vector disease</p>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-epicurve"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Demographic Pyramid -->
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i class="fa-solid fa-users-rays card-title-icon"></i>
+              <div>
+                <h3 class="card-title">2. Demographic Risk Pyramid</h3>
+                <p class="card-subtitle">Age bracket distribution stratified by Sex (Male vs Female)</p>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-demographics"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 3: Visualizations Grid (Row 2) -->
+      <section class="dashboard-grid-2">
+        <!-- Chart 3: Facility Burden -->
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i class="fa-solid fa-hospital card-title-icon"></i>
+              <div>
+                <h3 class="card-title">3. Facility-Level Case Burden</h3>
+                <p class="card-subtitle">Top reporting hospitals and Urban Health Centers</p>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-facilities"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 4: Zone & Prabhag Hierarchy -->
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i class="fa-solid fa-chart-column card-title-icon"></i>
+              <div>
+                <h3 class="card-title">4. Zone Outbreak Burden (Zones 1-10)</h3>
+                <p class="card-subtitle">Comparative case distribution across NMC Municipal Zones</p>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-zones"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: Visualizations Grid (Row 3 - High Risk Match & Vulnerability) -->
+      <section class="dashboard-grid-2">
+        <!-- Chart 5: High Risk Correlation -->
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i class="fa-solid fa-shield-virus card-title-icon"></i>
+              <div>
+                <h3 class="card-title">5. Sheet 2 High-Risk Area Match Ratio</h3>
+                <p class="card-subtitle">Correlation of patient addresses against designated high-risk zones</p>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-highrisk"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 6: Age Vulnerability Radar -->
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i class="fa-solid fa-bullseye card-title-icon"></i>
+              <div>
+                <h3 class="card-title">6. Age Group Susceptibility Radar</h3>
+                <p class="card-subtitle">Disease vulnerability profile across patient age tiers</p>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-vulnerability"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5: Case Density Heatmap Matrix -->
+      <section class="dashboard-grid-full">
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i class="fa-solid fa-table-cells card-title-icon"></i>
+              <div>
+                <h3 class="card-title">Zone vs. Month Outbreak Density Heatmap</h3>
+                <p class="card-subtitle">Spatial-temporal case intensity matrix across Nagpur Municipal Zones</p>
+              </div>
+            </div>
+          </div>
+          <div id="heatmap-container">
+            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading heatmap matrix...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 6: Geographical Mapping Area (Leaflet GIS & Sheet 2 High Risk Overlays) -->
+      <section class="dashboard-grid-full">
+        <div class="chart-card">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i class="fa-solid fa-earth-asia card-title-icon"></i>
+              <div>
+                <h3 class="card-title">Geographical Outbreak GIS Map &amp; Sheet 2 High-Risk Hotspots</h3>
+                <p class="card-subtitle">Interactive spatial plotting of hospital nodes, zone density circles, and Sheet 2 designated high-risk localities</p>
+              </div>
+            </div>
+          </div>
+          <div id="map-container"></div>
+        </div>
+      </section>
+
+      <!-- Section 7: Detailed Patient Linelist Data Table -->
+      <section class="table-card">
+        <div class="card-header">
+          <div class="card-title-group">
+            <i class="fa-solid fa-table-list card-title-icon"></i>
+            <div>
+              <h3 class="card-title">Patient Linelist Explorer</h3>
+              <p class="card-subtitle">Filterable database with all required healthcare columns</p>
+            </div>
+          </div>
+          <button id="btn-export-csv" class="filter-reset-btn" style="background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.3); color: var(--accent-primary);">
+            <i class="fa-solid fa-file-csv"></i> Export Filtered CSV
+          </button>
+        </div>
+
+        <div class="table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Sr. No.</th>
+                <th>Month &amp; Year</th>
+                <th>Patient's Name</th>
+                <th>Address</th>
+                <th>Age</th>
+                <th>Sex</th>
+                <th>Disease</th>
+                <th>Name of Hospital</th>
+                <th>Date of Notification</th>
+                <th>Zone</th>
+                <th>Prabhag</th>
+                <th>Sheet 2 High-Risk Status</th>
+              </tr>
+            </thead>
+            <tbody id="table-body">
+              <tr>
+                <td colspan="12" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                  <div class="loading-spinner"></div> Loading patient database...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-footer">
+          <span id="table-count-info">Showing 0 of 0 records</span>
+          <div class="pagination-controls">
+            <button id="btn-prev-page" class="btn-page" disabled><i class="fa-solid fa-chevron-left"></i> Previous</button>
+            <span id="table-page-info" style="font-weight: 600;">Page 1</span>
+            <button id="btn-next-page" class="btn-page"><i class="fa-solid fa-chevron-right"></i> Next</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>Nagpur Municipal Corporation (NMC) Health Department — Vector-Borne Disease Control Cell &copy; 2026</p>
+    </footer>
+
+  </div>
+
+  <!-- Application Logic Scripts -->
+  <script src="js/dataLoader.js"></script>
+  <script src="js/kpiManager.js"></script>
+  <script src="js/chartManager.js"></script>
+  <script src="js/heatmapManager.js"></script>
+  <script src="js/mapManager.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
