@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vector-Borne Disease (VBD) Interactive Health Dashboard - Nagpur Municipal Corporation</title>
-  <meta name="description" content="Interactive healthcare surveillance dashboard analyzing Chikungunya and Dengue outbreak linelists, spatial risk zones, and hospital notifications across Nagpur.">
+  <title>Vector-Borne Disease Surveillance (Nagpur Municipal Corporation) - Designed by SAURABH NAKHALE</title>
+  <meta name="description" content="Vector-Borne Disease Surveillance (Nagpur Municipal Corporation) - Integrated NCDC & NMC linelist and high-risk spatial analytics by Saurabh Nakhale (Data Analyst).">
 
   <!-- External CDNs -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -18,21 +18,57 @@
 <body>
   <div class="app-container">
     
-    <!-- Top Navigation Bar -->
+    <!-- Top Navigation Header -->
     <header class="navbar">
       <div class="brand-container">
-        <div class="brand-icon">
-          <i class="fa-solid fa-mosquito"></i>
+        <!-- Official Logos Container: NCDC & NMC -->
+        <div class="logos-group">
+          <!-- NCDC Logo Badge -->
+          <div class="official-logo-badge logo-ncdc" title="National Centre for Disease Control (NCDC)">
+            <svg viewBox="0 0 100 100" width="36" height="36" class="logo-svg">
+              <circle cx="50" cy="50" r="46" fill="#1e293b" stroke="#38bdf8" stroke-width="4"/>
+              <circle cx="50" cy="50" r="38" fill="none" stroke="#0284c7" stroke-width="2" stroke-dasharray="4,2"/>
+              <path d="M50 20 L50 80 M35 40 Q50 30 65 40 M35 60 Q50 70 65 60" stroke="#38bdf8" stroke-width="4" fill="none" stroke-linecap="round"/>
+              <text x="50" y="54" font-size="14" font-weight="900" fill="#ffffff" text-anchor="middle" font-family="sans-serif">NCDC</text>
+            </svg>
+            <span class="logo-label">NCDC</span>
+          </div>
+
+          <!-- NMC Logo Badge -->
+          <div class="official-logo-badge logo-nmc" title="Nagpur Municipal Corporation (NMC)">
+            <svg viewBox="0 0 100 100" width="36" height="36" class="logo-svg">
+              <rect x="10" y="10" width="80" height="80" rx="18" fill="#1e1b4b" stroke="#6366f1" stroke-width="4"/>
+              <path d="M30 75 L30 35 L50 60 L70 35 L70 75" stroke="#818cf8" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+              <text x="50" y="28" font-size="12" font-weight="900" fill="#a5b4fc" text-anchor="middle" font-family="sans-serif">NMC</text>
+            </svg>
+            <span class="logo-label">NMC</span>
+          </div>
         </div>
-        <div>
-          <h1 class="brand-title">Nagpur VBD Health Surveillance</h1>
-          <p class="brand-subtitle">Vector-Borne Disease Linelist &amp; Spatial High-Risk Area Analytics (Sheet 1 &amp; Sheet 2 Integrated)</p>
+
+        <div class="brand-text-block">
+          <h1 class="brand-title">Vector-Borne Disease Surveillance (Nagpur Municipal Corporation)</h1>
+          <p class="brand-subtitle">
+            Integrated NCDC &amp; NMC Healthcare Linelist &amp; Spatial High-Risk Area Analytics
+          </p>
         </div>
       </div>
+
       <div class="navbar-actions">
-        <div class="live-badge">
-          <span class="pulse-dot"></span> Live Data Stream
+        <!-- Live Current Date Badge -->
+        <div id="live-date-badge" class="date-badge">
+          <i class="fa-solid fa-calendar-day"></i> <span id="current-date-text">Loading date...</span>
         </div>
+
+        <!-- Designer Credit Badge -->
+        <div class="designer-credit-badge">
+          <i class="fa-solid fa-user-gear"></i>
+          <span>Designed By: <strong>SAURABH NAKHALE</strong> <small>(DATA ANALYST)</small></span>
+        </div>
+
+        <div class="live-badge">
+          <span class="pulse-dot"></span> Live Stream
+        </div>
+
         <button id="theme-toggle-btn" class="btn-icon" title="Toggle Light/Dark Theme">
           <i class="fa-solid fa-moon"></i>
         </button>
@@ -305,7 +341,7 @@
               <p class="card-subtitle">Filterable database with all required healthcare columns</p>
             </div>
           </div>
-          <button id="btn-export-csv" class="filter-reset-btn" style="background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.3); color: var(--accent-primary);">
+          <button id="btn-export-csv" class="filter-reset-btn" style="background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.3); color: var(--blue-accent);">
             <i class="fa-solid fa-file-csv"></i> Export Filtered CSV
           </button>
         </div>
@@ -352,7 +388,10 @@
 
     <!-- Footer -->
     <footer class="footer">
-      <p>Nagpur Municipal Corporation (NMC) Health Department — Vector-Borne Disease Control Cell &copy; 2026</p>
+      <p>Vector-Borne Disease Surveillance (Nagpur Municipal Corporation) &bull; National Centre for Disease Control (NCDC)</p>
+      <p style="margin-top: 0.3rem; font-weight: 600; color: #a5b4fc;">
+        Designed By: SAURABH NAKHALE (DATA ANALYST) &copy; 2026
+      </p>
     </footer>
 
   </div>

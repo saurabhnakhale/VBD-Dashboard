@@ -1,5 +1,5 @@
 /* ==========================================================================
-   EXACT MATCH DESIGN SYSTEM FROM USER SCREENSHOTS
+   EXACT MATCH DESIGN SYSTEM FROM USER SCREENSHOTS + NCDC & NMC LOGOS
    Aesthetics: Deep Midnight Background (#090e1a), Dark Card Panels (#11182e),
                Vivid Pink/Purple/Blue/Green Accents & Heatmap Matrix
    ========================================================================== */
@@ -19,7 +19,7 @@
   --text-sub: #94a3b8;
   --text-muted: #64748b;
 
-  /* Accent Colors matching charts in screenshots */
+  /* Accent Colors */
   --pink-accent: #ec4899;
   --purple-accent: #8b5cf6;
   --blue-accent: #3b82f6;
@@ -59,36 +59,63 @@ body {
   padding: 1.25rem 2rem;
   background: var(--bg-main);
   border-bottom: 1px solid var(--border-card);
+  gap: 1.5rem;
+  flex-wrap: wrap;
 }
 
 .brand-container {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.25rem;
 }
 
-.brand-icon {
-  width: 44px;
-  height: 44px;
-  background: var(--blue-accent);
-  border-radius: 12px;
+/* Official Logo Badges (NCDC & NMC) */
+.logos-group {
   display: flex;
   align-items: center;
+  gap: 0.75rem;
+}
+
+.official-logo-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
-  color: #fff;
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+  background: #0d1424;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 0.35rem 0.55rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.official-logo-badge:hover {
+  transform: translateY(-2px);
+  border-color: var(--blue-accent);
+}
+
+.logo-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}
+
+.brand-text-block {
+  display: flex;
+  flex-direction: column;
 }
 
 .brand-title {
-  font-size: 1.4rem;
+  font-size: 1.35rem;
   font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.02em;
 }
 
 .brand-subtitle {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   color: var(--text-sub);
   font-weight: 500;
 }
@@ -97,6 +124,45 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Date Badge */
+.date-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.85rem;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #60a5fa;
+}
+
+/* Designer Attribution Badge */
+.designer-credit-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.95rem;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(168, 85, 247, 0.2) 100%);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  border-radius: 20px;
+  font-size: 0.78rem;
+  color: #e0e7ff;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+}
+
+.designer-credit-badge strong {
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.designer-credit-badge small {
+  color: #c084fc;
+  font-weight: 700;
 }
 
 .live-badge {

@@ -1,6 +1,6 @@
 /**
  * App.js - Application Main Controller
- * Handles global state, filter events, search, table pagination, CSV export, and theme toggling.
+ * Handles global state, filter events, search, table pagination, CSV export, live date, and theme toggling.
  */
 
 const App = {
@@ -14,6 +14,7 @@ const App = {
   async init() {
     console.log("[App] Starting Vector-Borne Disease Dashboard...");
     
+    this.setupLiveDate();
     this.setupThemeToggle();
 
     try {
@@ -30,6 +31,15 @@ const App = {
     } catch (err) {
       console.error("[App] Failed to initialize dashboard:", err);
     }
+  },
+
+  setupLiveDate() {
+    const dateElement = document.getElementById('current-date-text');
+    if (!dateElement) return;
+
+    const options = { day: 'numeric', month: 'long', year: 'numeric' };
+    const todayStr = new Date().toLocaleDateString('en-GB', options);
+    dateElement.textContent = todayStr;
   },
 
   setupThemeToggle() {
