@@ -1,5 +1,5 @@
 /**
- * ChartManager.js - Manages Iwosan-style Chart.js visualizations
+ * ChartManager.js - Manages 6 advanced Chart.js visualizations for the dashboard.
  */
 
 const ChartManager = {
@@ -10,19 +10,19 @@ const ChartManager = {
     Chart.defaults.color = '#94a3b8';
     Chart.defaults.plugins.tooltip.padding = 12;
     Chart.defaults.plugins.tooltip.borderRadius = 8;
-    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(11, 16, 38, 0.95)';
-    Chart.defaults.plugins.tooltip.titleFont = { size: 12, weight: 'bold' };
-    Chart.defaults.plugins.tooltip.bodyFont = { size: 11 };
+    Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+    Chart.defaults.plugins.tooltip.titleFont = { size: 13, weight: 'bold' };
+    Chart.defaults.plugins.tooltip.bodyFont = { size: 12 };
   },
 
   renderAll(patients) {
     this.init();
-    this.renderDiagnosticsDonut(patients);
-    this.renderDemographicsDonut(patients);
-    this.renderHealthSparkline(patients);
-    this.renderMonthlyStackedBar(patients);
-    this.renderVulnerabilityRadar(patients);
-    this.renderHighRiskDoughnut(patients);
+    this.renderEpidemicCurve(patients);
+    this.renderDemographicPyramid(patients);
+    this.renderFacilityBurden(patients);
+    this.renderZoneHierarchy(patients);
+    this.renderHighRiskCorrelation(patients);
+    this.renderAgeDiseaseVulnerability(patients);
   },
 
   destroyChart(id) {
@@ -32,211 +32,197 @@ const ChartManager = {
     }
   },
 
-  // 1. Diagnostics Outbreak Donut (Chikungunya, Dengue, Other)
-  renderDiagnosticsDonut(patients) {
-    this.destroyChart('chart-donut-diagnostics');
-    const ctx = document.getElementById('chart-donut-diagnostics')?.getContext('2d');
+  // 1. Epidemic Curve & Temporal Surge
+  renderEpidemicCurve(patients) {
+    this.destroyChart('chart-epicurve');
+    const ctx = document.getElementById('chart-epicurve')?.getContext('2d');
     if (!ctx) return;
 
-    let chik = 0, deng = 0, other = 0;
+    const datesMap = {};
     patients.forEach(p => {
-      if (p.disease.includes('Chikungunya')) chik++;
-      else if (p.disease.includes('Dengue')) deng++;
-      else other++;
+      const key = p.parsedDate || `${p.month} ${p.year}`;
+      if (!datesMap[key]) datesMap[key] = { Chikungunya: 0, Dengue: 0, Total: 0 };
+      if (p.disease.includes('Chikungunya')) datesMap[key].Chikungunya++;
+      else if (p.disease.includes('Dengue')) datesMap[key].Dengue++;
+      datesMap[key].Total++;
     });
 
-    const total = chik + deng + other;
-    const totalElem = document.getElementById('donut-total-cases');
-    if (totalElem) totalElem.textContent = total.toLocaleString();
+    const sortedLabels = Object.keys(datesMap).sort();
+    const chikData = sortedLabels.map(l => datesMap[l].Chikungunya);
+    const dengueData = sortedLabels.map(l => datesMap[l].Dengue);
 
-    this.charts['chart-donut-diagnostics'] = new Chart(ctx, {
-      type: 'doughnut',
+    this.charts['chart-epicurve'] = new Chart(ctx, {
+      type: 'bar',
       data: {
-        labels: ['Chikungunya', 'Dengue', 'Others'],
-        datasets: [{
-          data: [chik, deng, other],
-          backgroundColor: ['#ff2a5f', '#2563eb', '#ffb703'],
-          borderWidth: 0,
-          hoverOffset: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '72%',
-        plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
-        }
-      }
-    });
-  },
-
-  // 2. Patient Demographics Donut (Men vs Women vs Children)
-  renderDemographicsDonut(patients) {
-    this.destroyChart('chart-donut-demographics');
-    const ctx = document.getElementById('chart-donut-demographics')?.getContext('2d');
-    if (!ctx) return;
-
-    let men = 0, women = 0, children = 0;
-    patients.forEach(p => {
-      if (p.age < 15) children++;
-      else if (p.sex.toLowerCase().startsWith('m')) men++;
-      else women++;
-    });
-
-    this.charts['chart-donut-demographics'] = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['MEN', 'WOMEN', 'CHILDREN'],
-        datasets: [{
-          data: [men, women, children],
-          backgroundColor: ['#2563eb', '#ff2a5f', '#00d2ff'],
-          borderWidth: 0,
-          hoverOffset: 6
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '68%',
-        plugins: {
-          legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } }
-        }
-      }
-    });
-  },
-
-  // 3. Health Index Area Sparkline
-  renderHealthSparkline(patients) {
-    this.destroyChart('chart-sparkline-health');
-    const ctx = document.getElementById('chart-sparkline-health')?.getContext('2d');
-    if (!ctx) return;
-
-    // Glowing pink area gradient
-    const grad = ctx.createLinearGradient(0, 0, 0, 100);
-    grad.addColorStop(0, 'rgba(255, 42, 95, 0.45)');
-    grad.addColorStop(1, 'rgba(255, 42, 95, 0.0)');
-
-    const sparkData = [40, 55, 48, 65, 78, 85, 92];
-
-    this.charts['chart-sparkline-health'] = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['June', 'July', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'],
-        datasets: [{
-          data: sparkData,
-          borderColor: '#ff2a5f',
-          borderWidth: 3,
-          backgroundColor: grad,
-          fill: true,
-          tension: 0.4,
-          pointBackgroundColor: '#ff2a5f',
-          pointRadius: 3
-        }]
+        labels: sortedLabels,
+        datasets: [
+          {
+            label: 'Chikungunya',
+            data: chikData,
+            backgroundColor: 'rgba(236, 72, 153, 0.7)',
+            borderColor: '#ec4899',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'Dengue',
+            data: dengueData,
+            backgroundColor: 'rgba(139, 92, 246, 0.7)',
+            borderColor: '#8b5cf6',
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: { display: false },
-          y: { display: false }
+          x: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Cases Notified' } }
+        },
+        plugins: { legend: { position: 'top' } }
+      }
+    });
+  },
+
+  // 2. Demographic Risk Pyramid
+  renderDemographicPyramid(patients) {
+    this.destroyChart('chart-demographics');
+    const ctx = document.getElementById('chart-demographics')?.getContext('2d');
+    if (!ctx) return;
+
+    const brackets = ['0-9', '10-19', '20-29', '30-39', '40-49', '50-59', '60-69', '70+'];
+    const maleCounts = new Array(brackets.length).fill(0);
+    const femaleCounts = new Array(brackets.length).fill(0);
+
+    patients.forEach(p => {
+      let bIdx = Math.floor(p.age / 10);
+      if (bIdx >= 7) bIdx = 7;
+      if (p.sex.toLowerCase().startsWith('m')) maleCounts[bIdx]++;
+      else if (p.sex.toLowerCase().startsWith('f')) femaleCounts[bIdx]++;
+    });
+
+    this.charts['chart-demographics'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: brackets,
+        datasets: [
+          {
+            label: 'Male',
+            data: maleCounts,
+            backgroundColor: 'rgba(59, 130, 246, 0.8)',
+            borderColor: '#3b82f6',
+            borderRadius: 4
+          },
+          {
+            label: 'Female',
+            data: femaleCounts,
+            backgroundColor: 'rgba(236, 72, 153, 0.8)',
+            borderColor: '#ec4899',
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Age Brackets (Years)' } },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Patient Count' } }
+        },
+        plugins: { legend: { position: 'top' } }
+      }
+    });
+  },
+
+  // 3. Facility-Level Case Burden Distribution
+  renderFacilityBurden(patients) {
+    this.destroyChart('chart-facilities');
+    const ctx = document.getElementById('chart-facilities')?.getContext('2d');
+    if (!ctx) return;
+
+    const hospMap = {};
+    patients.forEach(p => {
+      const hosp = p.hospital || 'Unspecified';
+      hospMap[hosp] = (hospMap[hosp] || 0) + 1;
+    });
+
+    const sorted = Object.entries(hospMap).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const labels = sorted.map(s => s[0]);
+    const data = sorted.map(s => s[1]);
+
+    this.charts['chart-facilities'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Notifications',
+          data: data,
+          backgroundColor: 'rgba(16, 185, 129, 0.75)',
+          borderColor: '#10b981',
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { grid: { display: false } }
         },
         plugins: { legend: { display: false } }
       }
     });
   },
 
-  // 4. Overall Monthly Case Surge Stacked Bar
-  renderMonthlyStackedBar(patients) {
-    this.destroyChart('chart-stacked-monthly');
-    const ctx = document.getElementById('chart-stacked-monthly')?.getContext('2d');
+  // 4. Zone & Prabhag Hierarchical Distribution
+  renderZoneHierarchy(patients) {
+    this.destroyChart('chart-zones');
+    const ctx = document.getElementById('chart-zones')?.getContext('2d');
     if (!ctx) return;
 
-    const months = ['June', 'July', 'August', 'September', 'October'];
-    const chikCounts = [120, 240, 310, 180, 90];
-    const dengCounts = [45, 95, 140, 85, 40];
+    const zoneCounts = {};
+    for (let i = 1; i <= 10; i++) zoneCounts[`Zone ${i}`] = 0;
 
-    this.charts['chart-stacked-monthly'] = new Chart(ctx, {
+    patients.forEach(p => {
+      const key = `Zone ${p.zoneNum || 10}`;
+      zoneCounts[key] = (zoneCounts[key] || 0) + 1;
+    });
+
+    const labels = Object.keys(zoneCounts);
+    const data = Object.values(zoneCounts);
+
+    this.charts['chart-zones'] = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: ['Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
-        datasets: [
-          {
-            label: 'Chikungunya',
-            data: chikCounts,
-            backgroundColor: '#ff2a5f',
-            borderRadius: 4
-          },
-          {
-            label: 'Dengue',
-            data: dengCounts,
-            backgroundColor: '#2563eb',
-            borderRadius: 4
-          }
-        ]
+        labels: labels,
+        datasets: [{
+          label: 'Total Cases',
+          data: data,
+          backgroundColor: 'rgba(99, 102, 241, 0.8)',
+          borderColor: '#6366f1',
+          borderRadius: 6
+        }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: { stacked: true, grid: { display: false } },
-          y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' } }
+          x: { grid: { color: 'rgba(255,255,255,0.05)' } },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' } }
         },
-        plugins: {
-          legend: { position: 'top', labels: { boxWidth: 8, font: { size: 9 } } }
-        }
+        plugins: { legend: { display: false } }
       }
     });
   },
 
-  // 5. Causes & Age Vulnerability Radar
-  renderVulnerabilityRadar(patients) {
-    this.destroyChart('chart-radar-vulnerability');
-    const ctx = document.getElementById('chart-radar-vulnerability')?.getContext('2d');
-    if (!ctx) return;
-
-    this.charts['chart-radar-vulnerability'] = new Chart(ctx, {
-      type: 'radar',
-      data: {
-        labels: ['Pediatric', 'Youth', 'Adult', 'Senior', 'UPHC Area', 'High Risk'],
-        datasets: [
-          {
-            label: 'Chikungunya Risk',
-            data: [80, 65, 90, 75, 85, 95],
-            borderColor: '#ff2a5f',
-            backgroundColor: 'rgba(255, 42, 95, 0.2)',
-            pointBackgroundColor: '#ff2a5f',
-            borderWidth: 2
-          },
-          {
-            label: 'Dengue Risk',
-            data: [60, 85, 70, 60, 75, 80],
-            borderColor: '#2563eb',
-            backgroundColor: 'rgba(37, 99, 235, 0.2)',
-            pointBackgroundColor: '#2563eb',
-            borderWidth: 2
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          r: {
-            angleLines: { color: 'rgba(255,255,255,0.08)' },
-            grid: { color: 'rgba(255,255,255,0.08)' },
-            pointLabels: { font: { size: 10, weight: 'bold' }, color: '#94a3b8' }
-          }
-        },
-        plugins: { legend: { position: 'top', labels: { font: { size: 9 } } } }
-      }
-    });
-  },
-
-  // 6. Sheet 2 High Risk Area Match Doughnut
-  renderHighRiskDoughnut(patients) {
-    this.destroyChart('chart-highrisk-doughnut');
-    const ctx = document.getElementById('chart-highrisk-doughnut')?.getContext('2d');
+  // 5. High-Risk Area Match Ratio (Sheet 2 Correlation)
+  renderHighRiskCorrelation(patients) {
+    this.destroyChart('chart-highrisk');
+    const ctx = document.getElementById('chart-highrisk')?.getContext('2d');
     if (!ctx) return;
 
     let matched = 0, nonMatched = 0;
@@ -245,21 +231,79 @@ const ChartManager = {
       else nonMatched++;
     });
 
-    this.charts['chart-highrisk-doughnut'] = new Chart(ctx, {
+    this.charts['chart-highrisk'] = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['Sheet 2 High-Risk Match', 'Other City Area'],
+        labels: ['Sheet 2 High-Risk Hotspot Match', 'Other City Locality'],
         datasets: [{
           data: [matched, nonMatched],
-          backgroundColor: ['#ff2a5f', '#2563eb'],
-          borderWidth: 0
+          backgroundColor: [
+            'rgba(239, 68, 68, 0.85)',
+            'rgba(59, 130, 246, 0.5)'
+          ],
+          borderColor: ['#ef4444', '#3b82f6'],
+          borderWidth: 2
         }]
       },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '65%',
-        plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } }
+        plugins: { legend: { position: 'bottom' } },
+        cutout: '65%'
+      }
+    });
+  },
+
+  // 6. Age Group Susceptibility by Disease
+  renderAgeDiseaseVulnerability(patients) {
+    this.destroyChart('chart-vulnerability');
+    const ctx = document.getElementById('chart-vulnerability')?.getContext('2d');
+    if (!ctx) return;
+
+    const ageGroups = ['Pediatric (<15)', 'Youth (15-34)', 'Adult (35-59)', 'Elderly (60+)'];
+    const chikData = [0, 0, 0, 0];
+    const dengData = [0, 0, 0, 0];
+
+    patients.forEach(p => {
+      const idx = ageGroups.indexOf(p.ageGroup);
+      if (idx !== -1) {
+        if (p.disease.includes('Chikungunya')) chikData[idx]++;
+        else if (p.disease.includes('Dengue')) dengData[idx]++;
+      }
+    });
+
+    this.charts['chart-vulnerability'] = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels: ageGroups,
+        datasets: [
+          {
+            label: 'Chikungunya',
+            data: chikData,
+            backgroundColor: 'rgba(236, 72, 153, 0.25)',
+            borderColor: '#ec4899',
+            pointBackgroundColor: '#ec4899'
+          },
+          {
+            label: 'Dengue',
+            data: dengData,
+            backgroundColor: 'rgba(139, 92, 246, 0.25)',
+            borderColor: '#8b5cf6',
+            pointBackgroundColor: '#8b5cf6'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          r: {
+            angleLines: { color: 'rgba(255,255,255,0.1)' },
+            grid: { color: 'rgba(255,255,255,0.1)' },
+            pointLabels: { font: { size: 11, weight: 'bold' } }
+          }
+        },
+        plugins: { legend: { position: 'top' } }
       }
     });
   }
