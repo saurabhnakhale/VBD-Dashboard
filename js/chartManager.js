@@ -1,6 +1,6 @@
 /**
  * ChartManager.js - Manages all Chart.js visualizations for the dashboard.
- * Chart 5: Top High-Risk Areas Disease Breakdown (Horizontal Stacked Bar Chart).
+ * Chart 5: Top High-Risk Localities Disease Breakdown (Horizontal Stacked Bar Chart).
  */
 
 const ChartManager = {
@@ -680,7 +680,7 @@ const ChartManager = {
   },
 
   // =========================================================================
-  // 5. TOP HIGH-RISK AREAS DISEASE BREAKDOWN (HORIZONTAL STACKED BAR CHART)
+  // 5. TOP HIGH-RISK LOCALITIES DISEASE BREAKDOWN (HORIZONTAL STACKED BAR CHART)
   // =========================================================================
   renderHighRiskCorrelation(patients) {
     this.destroyChart('chart-highrisk');
@@ -707,7 +707,7 @@ const ChartManager = {
           Dengue: 0,
           Chikungunya: 0,
           Malaria: 0,
-          JE_Other: 0,
+          ScrubTyphus: 0,
           Total: 0,
           isSheet2Match: false
         };
@@ -722,10 +722,10 @@ const ChartManager = {
         locMap[loc]['Chikungunya']++;
       } else if (dStr.includes('malaria')) {
         locMap[loc]['Malaria']++;
-      } else if (dStr.includes('dengue')) {
-        locMap[loc]['Dengue']++;
+      } else if (dStr.includes('scrub') || dStr.includes('typhus')) {
+        locMap[loc]['ScrubTyphus']++;
       } else {
-        locMap[loc]['JE_Other']++;
+        locMap[loc]['Dengue']++;
       }
 
       locMap[loc].Total++;
@@ -737,14 +737,14 @@ const ChartManager = {
       .slice(0, 10);
 
     const labels = top10.map(([loc, data]) => {
-      const badgeSymbol = data.isSheet2Match ? '🔥 [Sheet 2 Hotspot]' : '⚠️ [Emerging Cluster]';
+      const badgeSymbol = data.isSheet2Match ? '🔴 [Sheet 2 Hotspot]' : '🟠 [Emerging Cluster]';
       return `${loc} ${badgeSymbol}`;
     });
 
     const dengueData = top10.map(s => s[1].Dengue);
     const chikData = top10.map(s => s[1].Chikungunya);
     const malariaData = top10.map(s => s[1].Malaria);
-    const otherData = top10.map(s => s[1].JE_Other);
+    const scrubData = top10.map(s => s[1].ScrubTyphus);
 
     const inlineHorizontalLabelsPlugin = {
       id: 'horizontalBarLabels',
@@ -784,7 +784,7 @@ const ChartManager = {
           { label: 'Dengue', data: dengueData, backgroundColor: '#a855f7', borderRadius: 4 },
           { label: 'Chikungunya', data: chikData, backgroundColor: '#ec4899', borderRadius: 4 },
           { label: 'Malaria', data: malariaData, backgroundColor: '#06b6d4', borderRadius: 4 },
-          { label: 'Other VBDs / Scrub Typhus', data: otherData, backgroundColor: '#f59e0b', borderRadius: 4 }
+          { label: 'Scrub Typhus', data: scrubData, backgroundColor: '#ef4444', borderRadius: 4 }
         ]
       },
       plugins: [inlineHorizontalLabelsPlugin],
@@ -797,7 +797,7 @@ const ChartManager = {
             stacked: true,
             grid: { color: 'rgba(255, 255, 255, 0.05)' },
             ticks: { color: '#94a3b8' },
-            title: { display: true, text: 'Total Case Count', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
+            title: { display: true, text: 'Number of Confirmed Cases', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
           },
           y: {
             stacked: true,
@@ -824,23 +824,23 @@ const ChartManager = {
                 const totalLocCases = locData.Total || 1;
                 const val = item.raw;
                 const pctLoc = ((val / totalLocCases) * 100).toFixed(1);
-                return `${item.dataset.label}: ${val} cases (${pctLoc}% of locality)`;
+                return `${item.dataset.label}: ${val} cases (${pctLoc}% share of locality burden)`;
               },
               afterBody: (items) => {
                 const locIndex = items[0].dataIndex;
                 const locData = top10[locIndex][1];
                 const totalLocCases = locData.Total;
                 const pctCity = ((totalLocCases / totalMunicipalCases) * 100).toFixed(1);
-                const statusStr = locData.isSheet2Match ? '🔥 Designated Sheet 2 Hotspot' : '⚠️ New Emerging Outbreak Cluster';
+                const statusStr = locData.isSheet2Match ? '🔴 Sheet 2 Designated Hotspot' : '🟠 New Emerging Outbreak Cluster';
 
                 return [
                   '',
                   `📍 Status: ${statusStr}`,
-                  `📊 Total Locality Cases: ${totalLocCases} (${pctCity}% share of municipal total)`,
+                  `📊 Total Locality Burden: ${totalLocCases} cases (${pctCity}% of city total)`,
                   ` • Dengue: ${locData.Dengue}`,
                   ` • Chikungunya: ${locData.Chikungunya}`,
                   ` • Malaria: ${locData.Malaria}`,
-                  ` • Other VBDs / Scrub Typhus: ${locData.JE_Other}`
+                  ` • Scrub Typhus: ${locData.ScrubTyphus}`
                 ];
               }
             }
