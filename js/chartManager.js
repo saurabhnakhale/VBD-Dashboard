@@ -1,13 +1,20 @@
 /**
- * ChartManager.js - Manages 6 advanced Chart.js visualizations for the dashboard.
- * Chart 1: Case Trend Over Time Trendlines (Dengue, Chikungunya, Malaria) with By Day / By Month / By Year pill selectors.
- * Dengue (Positive) is removed as requested.
+ * ChartManager.js - Manages all Chart.js visualizations for the dashboard.
+ * Includes:
+ * 1. Epidemic Curve & Temporal Surge (Full timeline multi-series line chart)
+ * 2. Case Trend Over Time (By Day, By Month, By Year trendlines for Dengue, Chikungunya, Malaria)
+ * 3. Demographic Risk Pyramid
+ * 4. Facility Burden Stacked Breakdown
+ * 5. Zone & Prabhag Case Distribution Stacked Bar Chart
+ * 6. Sheet 2 High-Risk Area Match Ratio
+ * 7. Age Group Susceptibility Radar
  */
 
 const ChartManager = {
   charts: {},
   currentPatients: [],
   currentGranularity: 'daily',
+  currentFullGranularity: 'daily',
 
   init() {
     Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
@@ -22,6 +29,7 @@ const ChartManager = {
   renderAll(patients) {
     this.init();
     this.currentPatients = patients;
+    this.renderFullEpidemicCurve(patients, this.currentFullGranularity);
     this.renderEpidemicCurve(patients, this.currentGranularity);
     this.renderDemographicPyramid(patients);
     this.renderFacilityBurden(patients);
@@ -39,33 +47,172 @@ const ChartManager = {
   },
 
   setupGranularityListeners() {
+    // 1. Full Timeline Epicurve Listener
+    const fullContainer = document.getElementById('epicurve-full-granularity-toggle');
+    if (fullContainer && !fullContainer.dataset.initialized) {
+      fullContainer.dataset.initialized = 'true';
+      fullContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('.pill-btn') || e.target.closest('.btn-granularity');
+        if (!btn) return;
+
+        fullContainer.querySelectorAll('.pill-btn, .btn-granularity').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const gran = btn.dataset.granularity || 'daily';
+        this.currentFullGranularity = gran;
+        this.renderFullEpidemicCurve(this.currentPatients, gran);
+      });
+    }
+
+    // 2. Case Trend Over Time Listener
     const container = document.getElementById('epicurve-granularity-toggle');
-    if (!container || container.dataset.initialized) return;
+    if (container && !container.dataset.initialized) {
+      container.dataset.initialized = 'true';
+      container.addEventListener('click', (e) => {
+        const btn = e.target.closest('.pill-btn') || e.target.closest('.btn-granularity');
+        if (!btn) return;
 
-    container.dataset.initialized = 'true';
-    container.addEventListener('click', (e) => {
-      const btn = e.target.closest('.pill-btn') || e.target.closest('.btn-granularity');
-      if (!btn) return;
+        container.querySelectorAll('.pill-btn, .btn-granularity').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-      container.querySelectorAll('.pill-btn, .btn-granularity').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      const gran = btn.dataset.granularity || 'daily';
-      this.currentGranularity = gran;
-      this.renderEpidemicCurve(this.currentPatients, gran);
-    });
+        const gran = btn.dataset.granularity || 'daily';
+        this.currentGranularity = gran;
+        this.renderEpidemicCurve(this.currentPatients, gran);
+      });
+    }
   },
 
   getDiseaseCategory(disStr) {
     const d = (disStr || '').toLowerCase();
-    if (d.includes('positive')) return 'EXCLUDE'; // Explicitly remove Dengue (Positive)
+    if (d.includes('positive')) return 'EXCLUDE';
     if (d.includes('chikungunya') || d.includes('chikun')) return 'Chikungunya';
     if (d.includes('malaria')) return 'Malaria';
     return 'Dengue';
   },
 
   // =========================================================================
-  // 1. Case Trend Over Time (Multi-Series Trendline for Dengue, Chikungunya, Malaria)
+  // 1. Epidemic Curve & Temporal Surge (Full Timeline Line Chart with 5 Series)
+  // =========================================================================
+  renderFullEpidemicCurve(patients, granularity = 'daily') {
+    this.destroyChart('chart-epicurve-full');
+    const ctx = document.getElementById('chart-epicurve-full')?.getContext('2d');
+    if (!ctx) return;
+
+    const diseaseList = [
+      { key: 'Dengue', label: 'Dengue Surge', color: '#8b5cf6', fill: 'rgba(139, 92, 246, 0.2)' },
+      { key: 'Chikungunya', label: 'Chikungunya Surge', color: '#ec4899', fill: 'rgba(236, 72, 153, 0.2)' },
+      { key: 'Malaria', label: 'Malaria Surge', color: '#06b6d4', fill: 'rgba(6, 182, 212, 0.2)' },
+      { key: 'JE', label: 'Japanese Encephalitis (JE)', color: '#f59e0b', fill: 'rgba(245, 158, 11, 0.2)' },
+      { key: 'Scrub Typhus', label: 'Scrub Typhus', color: '#ef4444', fill: 'rgba(239, 68, 68, 0.2)' }
+    ];
+
+    const getDateKey = (p) => {
+      let d = p.dateObj || (p.parsedDate ? new Date(p.parsedDate) : null);
+      if (!d || isNaN(d.getTime())) return null;
+
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+
+      if (granularity === 'daily') {
+        return `${yyyy}-${mm}-${dd}`;
+      } else if (granularity === 'weekly') {
+        const day = d.getDay();
+        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+        const mon = new Date(d.setDate(diff));
+        const mYyyy = mon.getFullYear();
+        const mMm = String(mon.getMonth() + 1).padStart(2, '0');
+        const mDd = String(mon.getDate()).padStart(2, '0');
+        return `${mYyyy}-${mMm}-${mDd}`;
+      } else if (granularity === 'monthly') {
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${monthNames[d.getMonth()]} ${yyyy}`;
+      } else { // yearly
+        return `${yyyy}`;
+      }
+    };
+
+    const dateMap = {};
+    patients.forEach(p => {
+      const key = getDateKey(p);
+      if (key && !dateMap[key]) {
+        dateMap[key] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE: 0, 'Scrub Typhus': 0 };
+      }
+    });
+
+    const timeLabels = Object.keys(dateMap).sort();
+
+    patients.forEach(p => {
+      const key = getDateKey(p);
+      if (key && dateMap[key]) {
+        const dStr = (p.disease || '').toLowerCase();
+        if (dStr.includes('chikungunya') || dStr.includes('chikun')) dateMap[key]['Chikungunya']++;
+        else if (dStr.includes('malaria')) dateMap[key]['Malaria']++;
+        else if (dStr.includes('japanese') || dStr.includes('encephalitis') || dStr.includes('je')) dateMap[key]['JE']++;
+        else if (dStr.includes('scrub') || dStr.includes('typhus')) dateMap[key]['Scrub Typhus']++;
+        else dateMap[key]['Dengue']++;
+      }
+    });
+
+    const datasets = diseaseList.map(dis => {
+      const data = timeLabels.map(t => dateMap[t][dis.key]);
+      return {
+        label: dis.label,
+        data: data,
+        borderColor: dis.color,
+        backgroundColor: dis.fill,
+        borderWidth: 2,
+        tension: 0.4,
+        fill: true,
+        pointRadius: timeLabels.length > 60 ? 0 : 3,
+        pointHoverRadius: 6
+      };
+    });
+
+    this.charts['chart-epicurve-full'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: timeLabels,
+        datasets: datasets
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            title: { display: true, text: `Timeline (${granularity.toUpperCase()})`, color: '#94a3b8', font: { weight: '600', size: 11 } },
+            ticks: { maxTicksLimit: 14, color: '#94a3b8' }
+          },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            title: { display: true, text: 'Notified Cases Count', color: '#94a3b8', font: { weight: '600', size: 11 } },
+            beginAtZero: true,
+            ticks: { precision: 0 }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 10, padding: 16, font: { size: 12, weight: '600' } }
+          },
+          tooltip: {
+            callbacks: {
+              footer: (items) => {
+                let sum = 0;
+                items.forEach(i => sum += i.raw);
+                return `Total Notified Cases: ${sum}`;
+              }
+            }
+          }
+        }
+      }
+    });
+  },
+
+  // =========================================================================
+  // 2. Case Trend Over Time (Multi-Series Trendline for Dengue, Chikungunya, Malaria)
   // =========================================================================
   renderEpidemicCurve(patients, granularity = 'daily') {
     this.destroyChart('chart-epicurve');
@@ -239,7 +386,7 @@ const ChartManager = {
     });
   },
 
-  // 2. Demographic Risk Pyramid
+  // 3. Demographic Risk Pyramid
   renderDemographicPyramid(patients) {
     this.destroyChart('chart-demographics');
     const ctx = document.getElementById('chart-demographics')?.getContext('2d');
@@ -283,7 +430,7 @@ const ChartManager = {
     });
   },
 
-  // 3. Facility Burden
+  // 4. Facility Burden
   renderFacilityBurden(patients) {
     this.destroyChart('chart-facilities');
     const ctx = document.getElementById('chart-facilities')?.getContext('2d');
@@ -329,7 +476,7 @@ const ChartManager = {
     });
   },
 
-  // 4. Zone & Prabhag Case Distribution Stacked Bar Chart
+  // 5. Zone & Prabhag Case Distribution Stacked Bar Chart
   renderZonePrabhagDistribution(patients) {
     this.destroyChart('chart-zones');
     const ctx = document.getElementById('chart-zones')?.getContext('2d');
@@ -465,7 +612,7 @@ const ChartManager = {
     });
   },
 
-  // 5. High Risk Correlation
+  // 6. High Risk Correlation
   renderHighRiskCorrelation(patients) {
     this.destroyChart('chart-highrisk');
     const ctx = document.getElementById('chart-highrisk')?.getContext('2d');
@@ -497,7 +644,7 @@ const ChartManager = {
     });
   },
 
-  // 6. Age Group Susceptibility
+  // 7. Age Group Susceptibility
   renderAgeDiseaseVulnerability(patients) {
     this.destroyChart('chart-vulnerability');
     const ctx = document.getElementById('chart-vulnerability')?.getContext('2d');
