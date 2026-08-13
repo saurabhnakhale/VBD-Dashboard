@@ -1,5 +1,6 @@
 /**
  * ChartManager.js - Manages all Chart.js visualizations for the dashboard.
+ * Chart 5: Clean Y-axis locality names without Sheet 2 Hotspot / Emerging Cluster text suffixes.
  */
 
 const ChartManager = {
@@ -734,10 +735,8 @@ const ChartManager = {
       .sort((a, b) => b[1].Total - a[1].Total)
       .slice(0, 10);
 
-    const labels = top10.map(([loc, data]) => {
-      const badgeSymbol = data.isSheet2Match ? '🔴 [Sheet 2 Hotspot]' : '🟠 [Emerging Cluster]';
-      return `${loc} ${badgeSymbol}`;
-    });
+    // Clean locality names without text suffixes on Y-axis
+    const labels = top10.map(([loc, data]) => loc);
 
     const dengueData = top10.map(s => s[1].Dengue);
     const chikData = top10.map(s => s[1].Chikungunya);
@@ -829,7 +828,7 @@ const ChartManager = {
                 const locData = top10[locIndex][1];
                 const totalLocCases = locData.Total;
                 const pctCity = ((totalLocCases / totalMunicipalCases) * 100).toFixed(1);
-                const statusStr = locData.isSheet2Match ? '🔴 Sheet 2 Designated Hotspot' : '🟠 New Emerging Outbreak Cluster';
+                const statusStr = locData.isSheet2Match ? 'Designated Sheet 2 Hotspot' : 'Emerging Outbreak Cluster';
 
                 return [
                   '',
