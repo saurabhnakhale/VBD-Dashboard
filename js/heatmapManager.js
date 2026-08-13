@@ -3,6 +3,47 @@
  * representing disease intensity across Zones (1-10) and Prabhags/Months.
  */
 
+function processHeatmapData(records) {
+  const matrix = {};
+  let totalCount = 0;
+
+  if (!records || !Array.isArray(records)) return matrix;
+
+  records.forEach(row => {
+    // 1. Normalize field keys safely
+    const zone = row.Zone || row.zone || row.zoneName || `Zone ${row.zoneNum || '1'}` || 'Unspecified Zone';
+    let prabhag = row.Prabhag || row.prabhag || row.prabhag_no || 'P0';
+    
+    // Ensure Prabhag format matches header labels (e.g., "P16" or "16")
+    if (!prabhag.toString().startsWith('P') && prabhag !== 'P0') {
+      prabhag = `P${prabhag}`;
+    }
+
+    const disease = (row.Disease || row.disease || '').toLowerCase();
+
+    // 2. Initialize Matrix Nodes
+    if (!matrix[zone]) matrix[zone] = {};
+    if (!matrix[zone][prabhag]) {
+      matrix[zone][prabhag] = { total: 0, dengue: 0, chikungunya: 0, malaria: 0, scrub: 0 };
+    }
+
+    // 3. Increment Counts
+    matrix[zone][prabhag].total += 1;
+    totalCount += 1;
+
+    if (disease.includes('dengue')) matrix[zone][prabhag].dengue += 1;
+    else if (disease.includes('chikungunya') || disease.includes('chikun')) matrix[zone][prabhag].chikungunya += 1;
+    else if (disease.includes('malaria')) matrix[zone][prabhag].malaria += 1;
+    else matrix[zone][prabhag].scrub += 1;
+  });
+
+  // 4. Update UI Counter
+  const totalElem = document.getElementById('total-cases-count');
+  if (totalElem) totalElem.textContent = `Total Cases: ${totalCount}`;
+
+  return matrix;
+}
+
 const HeatmapManager = {
   render(patients) {
     const container = document.getElementById('heatmap-container');
