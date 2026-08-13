@@ -124,57 +124,89 @@
     <!-- Main Dashboard Workspace -->
     <main class="dashboard-body">
 
-      <!-- Section 1: 5 Healthcare KPIs -->
-      <section class="kpi-grid">
-        <!-- KPI 1 -->
-        <div class="kpi-card kpi-info">
-          <div class="kpi-header">
-            <span class="kpi-title">Total Notified Cases</span>
-            <div class="kpi-icon-wrapper"><i class="fa-solid fa-clipboard-user"></i></div>
-          </div>
-          <div id="kpi-total-cases" class="kpi-value">--</div>
-          <div id="kpi-total-subtext" class="kpi-subtext">Loading linelist records...</div>
-        </div>
-
-        <!-- KPI 2 -->
+      <!-- Section 1: 8 Healthcare KPIs (Updated as per request) -->
+      <section class="kpi-grid kpi-grid-8">
+        
+        <!-- KPI 1: Dengue Cases -->
         <div class="kpi-card kpi-purple">
           <div class="kpi-header">
-            <span class="kpi-title">Dominant Disease</span>
-            <div class="kpi-icon-wrapper"><i class="fa-solid fa-disease"></i></div>
+            <span class="kpi-title">Dengue Cases</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-mosquito-net"></i></div>
           </div>
-          <div id="kpi-dominant-disease" class="kpi-value">--</div>
-          <div id="kpi-dominant-subtext" class="kpi-subtext">Outbreak spectrum ratio</div>
+          <div id="kpi-dengue-cases" class="kpi-value">--</div>
+          <div id="kpi-dengue-subtext" class="kpi-subtext">Loading Dengue count...</div>
         </div>
 
-        <!-- KPI 3 -->
+        <!-- KPI 2: Chikungunya Cases -->
+        <div class="kpi-card kpi-pink">
+          <div class="kpi-header">
+            <span class="kpi-title">Chikungunya Cases</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-virus-covid"></i></div>
+          </div>
+          <div id="kpi-chikungunya-cases" class="kpi-value">--</div>
+          <div id="kpi-chikungunya-subtext" class="kpi-subtext">Loading Chikungunya count...</div>
+        </div>
+
+        <!-- KPI 3: Malaria Cases -->
+        <div class="kpi-card kpi-cyan">
+          <div class="kpi-header">
+            <span class="kpi-title">Malaria Cases</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-microscope"></i></div>
+          </div>
+          <div id="kpi-malaria-cases" class="kpi-value">--</div>
+          <div id="kpi-malaria-subtext" class="kpi-subtext">Active vector surveillance</div>
+        </div>
+
+        <!-- KPI 4: Japanese Encephalitis (JE) -->
         <div class="kpi-card kpi-warning">
           <div class="kpi-header">
-            <span class="kpi-title">Vulnerable Group Rate</span>
-            <div class="kpi-icon-wrapper"><i class="fa-solid fa-person-breastfeeding"></i></div>
+            <span class="kpi-title">Japanese Encephalitis (JE)</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-brain"></i></div>
           </div>
-          <div id="kpi-vulnerable-rate" class="kpi-value">--</div>
-          <div id="kpi-vulnerable-subtext" class="kpi-subtext">Children (&lt;15) &amp; Seniors (60+)</div>
+          <div id="kpi-je-cases" class="kpi-value">--</div>
+          <div id="kpi-je-subtext" class="kpi-subtext">Encephalitis monitoring</div>
         </div>
 
-        <!-- KPI 4 -->
+        <!-- KPI 5: Scrub Typhus -->
         <div class="kpi-card kpi-danger">
           <div class="kpi-header">
-            <span class="kpi-title">Highest Burden Epicenter</span>
-            <div class="kpi-icon-wrapper"><i class="fa-solid fa-fire-flame-curved"></i></div>
+            <span class="kpi-title">Scrub Typhus</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-bug"></i></div>
           </div>
-          <div id="kpi-epicenter-zone" class="kpi-value">--</div>
-          <div id="kpi-epicenter-subtext" class="kpi-subtext">Top reporting zone</div>
+          <div id="kpi-scrub-typhus-cases" class="kpi-value">--</div>
+          <div id="kpi-scrub-typhus-subtext" class="kpi-subtext">Rickettsial disease count</div>
         </div>
 
-        <!-- KPI 5 -->
+        <!-- KPI 6: Top Hotspot Zone -->
+        <div class="kpi-card kpi-crimson">
+          <div class="kpi-header">
+            <span class="kpi-title">Top Hotspot Zone</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-fire-flame-curved"></i></div>
+          </div>
+          <div id="kpi-hotspot-zone" class="kpi-value">--</div>
+          <div id="kpi-hotspot-subtext" class="kpi-subtext">Highest burden epicentre</div>
+        </div>
+
+        <!-- KPI 7: 7-Day / 30-Day Moving Trend -->
         <div class="kpi-card kpi-success">
           <div class="kpi-header">
-            <span class="kpi-title">UPHC Primary Care Burden</span>
-            <div class="kpi-icon-wrapper"><i class="fa-solid fa-house-medical"></i></div>
+            <span class="kpi-title">7-Day / 30-Day Trend</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-arrow-trend-up"></i></div>
           </div>
-          <div id="kpi-facility-uphc" class="kpi-value">--</div>
-          <div id="kpi-facility-subtext" class="kpi-subtext">Urban Health Center proportion</div>
+          <div id="kpi-trend-rate" class="kpi-value">--</div>
+          <div id="kpi-trend-subtext" class="kpi-subtext">Moving notification delta</div>
         </div>
+
+        <!-- KPI 8: Case Fatality Rate (CFR) -->
+        <div class="kpi-card kpi-info">
+          <div class="kpi-header">
+            <span class="kpi-title">Case Fatality Rate (CFR)</span>
+            <div class="kpi-icon-wrapper"><i class="fa-solid fa-heart-pulse"></i></div>
+          </div>
+          <div id="kpi-cfr-rate" class="kpi-value">--</div>
+          <div id="kpi-cfr-subtext" class="kpi-subtext">Outbreak mortality index</div>
+        </div>
+
       </section>
 
       <!-- Section 2: Visualizations Grid (Row 1) -->

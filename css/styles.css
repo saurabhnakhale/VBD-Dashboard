@@ -24,6 +24,8 @@
   --green-accent: #10b981;
   --amber-accent: #f59e0b;
   --red-accent: #ef4444;
+  --cyan-accent: #06b6d4;
+  --crimson-accent: #dc2626;
 
   --radius-card: 12px;
   --radius-btn: 8px;
@@ -278,23 +280,29 @@ body {
   flex: 1;
 }
 
-/* 5 KPI Cards Grid */
-.kpi-grid {
+/* 8 KPI Cards Grid */
+.kpi-grid-8 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.15rem;
 }
 
 .kpi-card {
   background: var(--bg-card);
   border: 1px solid var(--border-card);
   border-radius: var(--radius-card);
-  padding: 1.35rem 1.5rem;
+  padding: 1.25rem 1.35rem;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 140px;
+  min-height: 135px;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-card-hover);
 }
 
 .kpi-card::before {
@@ -310,8 +318,11 @@ body {
 
 .kpi-card.kpi-info::before { background: var(--blue-accent); }
 .kpi-card.kpi-purple::before { background: var(--purple-accent); }
+.kpi-card.kpi-pink::before { background: var(--pink-accent); }
+.kpi-card.kpi-cyan::before { background: var(--cyan-accent); }
 .kpi-card.kpi-warning::before { background: var(--amber-accent); }
 .kpi-card.kpi-danger::before { background: var(--red-accent); }
+.kpi-card.kpi-crimson::before { background: var(--crimson-accent); }
 .kpi-card.kpi-success::before { background: var(--green-accent); }
 
 .kpi-header {
@@ -321,40 +332,43 @@ body {
 }
 
 .kpi-title {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 800;
   text-transform: uppercase;
   color: var(--text-sub);
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
 .kpi-icon-wrapper {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1rem;
+  font-size: 0.95rem;
   background: rgba(255, 255, 255, 0.05);
 }
 
 .kpi-info .kpi-icon-wrapper { color: var(--blue-accent); }
 .kpi-purple .kpi-icon-wrapper { color: var(--purple-accent); }
+.kpi-pink .kpi-icon-wrapper { color: var(--pink-accent); }
+.kpi-cyan .kpi-icon-wrapper { color: var(--cyan-accent); }
 .kpi-warning .kpi-icon-wrapper { color: var(--amber-accent); }
 .kpi-danger .kpi-icon-wrapper { color: var(--red-accent); }
+.kpi-crimson .kpi-icon-wrapper { color: var(--crimson-accent); }
 .kpi-success .kpi-icon-wrapper { color: var(--green-accent); }
 
 .kpi-value {
-  font-size: 2.1rem;
+  font-size: 1.9rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #ffffff;
-  margin: 0.4rem 0;
+  margin: 0.3rem 0;
 }
 
 .kpi-subtext {
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   color: var(--text-muted);
   display: flex;
   align-items: center;
