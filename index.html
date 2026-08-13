@@ -53,11 +53,14 @@
 
     <!-- Slicers & Dynamic Filter Toolbar -->
     <section class="filter-bar">
+      
+      <!-- 1. Search Slicer (Patient's Name, Hospital, Address ONLY) -->
       <div class="filter-group">
         <label class="filter-label" for="filter-search"><i class="fa-solid fa-magnifying-glass"></i> Search</label>
-        <input type="text" id="filter-search" class="filter-control" placeholder="Search patient, address, hospital...">
+        <input type="text" id="filter-search" class="filter-control" placeholder="Search Patient Name, Hospital, Address...">
       </div>
 
+      <!-- 2. Disease Slicer -->
       <div class="filter-group">
         <label class="filter-label" for="filter-disease"><i class="fa-solid fa-virus"></i> Disease</label>
         <select id="filter-disease" class="filter-control">
@@ -65,6 +68,7 @@
         </select>
       </div>
 
+      <!-- 3. Zone Slicer -->
       <div class="filter-group">
         <label class="filter-label" for="filter-zone"><i class="fa-solid fa-map-location-dot"></i> Zone</label>
         <select id="filter-zone" class="filter-control">
@@ -72,13 +76,7 @@
         </select>
       </div>
 
-      <div class="filter-group">
-        <label class="filter-label" for="filter-prabhag"><i class="fa-solid fa-location-crosshairs"></i> Prabhag</label>
-        <select id="filter-prabhag" class="filter-control">
-          <option value="ALL">All Prabhags</option>
-        </select>
-      </div>
-
+      <!-- 4. Month Slicer -->
       <div class="filter-group">
         <label class="filter-label" for="filter-month"><i class="fa-solid fa-calendar-days"></i> Month</label>
         <select id="filter-month" class="filter-control">
@@ -86,19 +84,27 @@
         </select>
       </div>
 
+      <!-- 5. Year Slicer (Replaces Prabhag & Age Group) -->
       <div class="filter-group">
-        <label class="filter-label" for="filter-age-group"><i class="fa-solid fa-users"></i> Age Group</label>
-        <select id="filter-age-group" class="filter-control">
-          <option value="ALL">All Age Groups</option>
-          <option value="Pediatric (<15)">Pediatric (&lt;15 yrs)</option>
-          <option value="Youth (15-34)">Youth (15-34 yrs)</option>
-          <option value="Adult (35-59)">Adult (35-59 yrs)</option>
-          <option value="Elderly (60+)">Elderly (60+ yrs)</option>
+        <label class="filter-label" for="filter-year"><i class="fa-solid fa-calendar"></i> Year</label>
+        <select id="filter-year" class="filter-control">
+          <option value="ALL">All Years</option>
         </select>
       </div>
 
+      <!-- 6. Date Timeline Selector (Calendar Range) -->
+      <div class="filter-group filter-group-date">
+        <label class="filter-label" for="filter-start-date"><i class="fa-solid fa-calendar-week"></i> Date Timeline</label>
+        <div class="date-range-inputs">
+          <input type="date" id="filter-start-date" class="filter-control date-control" title="Start Date">
+          <span class="date-sep">to</span>
+          <input type="date" id="filter-end-date" class="filter-control date-control" title="End Date">
+        </div>
+      </div>
+
+      <!-- 7. Facility Type Slicer (Hospital Signage) -->
       <div class="filter-group">
-        <label class="filter-label" for="filter-facility"><i class="fa-solid fa-hospital-user"></i> Facility Type</label>
+        <label class="filter-label" for="filter-facility"><i class="fa-solid fa-hospital"></i> Facility Type</label>
         <select id="filter-facility" class="filter-control">
           <option value="ALL">All Facilities</option>
           <option value="Urban Primary Health Center (UPHC)">Urban Primary Health Centers (UPHC)</option>
@@ -107,9 +113,12 @@
         </select>
       </div>
 
-      <button id="filter-reset-btn" class="filter-reset-btn">
-        <i class="fa-solid fa-rotate-left"></i> Reset
-      </button>
+      <!-- 8. Compact Reset Button -->
+      <div class="filter-group filter-group-reset">
+        <button id="filter-reset-btn" class="filter-reset-btn btn-sm">
+          <i class="fa-solid fa-rotate-left"></i> Reset
+        </button>
+      </div>
     </section>
 
     <!-- Main Dashboard Workspace -->
@@ -221,7 +230,7 @@
           </div>
         </div>
 
-        <!-- Chart 4: Zone & Prabhag Hierarchy -->
+        <!-- Chart 4: Zone Outbreak Burden -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">

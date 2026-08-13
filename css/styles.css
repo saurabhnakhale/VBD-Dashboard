@@ -1,13 +1,11 @@
 /* ==========================================================================
    EXACT MATCH DESIGN SYSTEM + CUSTOM CENTERED HEADER & OFFICIAL LOGOS
-   Aesthetics: Deep Midnight Background (#090e1a), Dark Card Panels (#11182e),
-               Vivid Pink/Purple/Blue/Green Accents & Centered Title Banner
    ========================================================================== */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Exact Colors */
+  /* Colors */
   --bg-main: #090e1a;
   --bg-card: #11182e;
   --bg-card-hover: #16203a;
@@ -168,7 +166,7 @@ body {
 @keyframes pulse {
   0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
   70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
 }
 
 /* Filter Bar */
@@ -177,7 +175,7 @@ body {
   border-bottom: 1px solid var(--border-card);
   padding: 1.25rem 2rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1rem;
   align-items: end;
 }
@@ -186,6 +184,14 @@ body {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+}
+
+.filter-group-date {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .filter-group-date { grid-column: span 1; }
 }
 
 .filter-label {
@@ -216,6 +222,26 @@ body {
   border-color: var(--blue-accent);
 }
 
+/* Date Timeline Inputs */
+.date-range-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.date-control {
+  font-size: 0.78rem;
+  padding: 0.55rem 0.6rem;
+  color-scheme: dark;
+}
+
+.date-sep {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+/* Compact Small Reset Button */
 .filter-reset-btn {
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.35);
@@ -230,6 +256,12 @@ body {
   justify-content: center;
   gap: 0.5rem;
   transition: all 0.2s ease;
+}
+
+.filter-reset-btn.btn-sm {
+  padding: 0.55rem 0.85rem;
+  font-size: 0.78rem;
+  height: 38px;
 }
 
 .filter-reset-btn:hover {

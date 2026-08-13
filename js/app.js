@@ -1,6 +1,6 @@
 /**
  * App.js - Application Main Controller
- * Handles global state, filter events, search, table pagination, CSV export, live date, and theme toggling.
+ * Handles global state, filter events, search, table pagination, CSV export, live date, and dynamic slicers.
  */
 
 const App = {
@@ -15,7 +15,6 @@ const App = {
     console.log("[App] Starting Vector-Borne Disease Dashboard...");
     
     this.setupLiveDate();
-    this.setupThemeToggle();
 
     try {
       const data = await DataLoader.init();
@@ -42,17 +41,6 @@ const App = {
     dateElement.textContent = todayStr;
   },
 
-  setupThemeToggle() {
-    const btn = document.getElementById('theme-toggle-btn');
-    if (!btn) return;
-    btn.addEventListener('click', () => {
-      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
-      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-      document.documentElement.setAttribute('data-theme', newTheme);
-      btn.innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
-    });
-  },
-
   populateFilterDropdowns() {
     // 1. Diseases
     const diseaseSet = new Set(this.allPatients.map(p => p.disease).filter(Boolean));
@@ -74,10 +62,7 @@ const App = {
       }
     }
 
-    // 3. Prabhags
-    this.updatePrabhagDropdown('ALL');
-
-    // 4. Months
+    // 3. Months
     const monthSet = new Set(this.allPatients.map(p => p.month).filter(Boolean));
     const monthSelect = document.getElementById('filter-month');
     if (monthSelect) {
@@ -86,52 +71,38 @@ const App = {
         monthSelect.innerHTML += `<option value="${m}">${m}</option>`;
       });
     }
-  },
 
-  updatePrabhagDropdown(selectedZone) {
-    const prabhagSelect = document.getElementById('filter-prabhag');
-    if (!prabhagSelect) return;
-
-    prabhagSelect.innerHTML = '<option value="ALL">All Prabhags</option>';
-
-    let validPatients = this.allPatients;
-    if (selectedZone !== 'ALL') {
-      const zNum = parseInt(selectedZone, 10);
-      validPatients = this.allPatients.filter(p => p.zoneNum === zNum);
+    // 4. Years (Replaces Prabhag & Age Group)
+    const yearSet = new Set(this.allPatients.map(p => p.year).filter(Boolean));
+    const sortedYears = Array.from(yearSet).sort((a, b) => a - b);
+    const yearSelect = document.getElementById('filter-year');
+    if (yearSelect) {
+      yearSelect.innerHTML = '<option value="ALL">All Years</option>';
+      sortedYears.forEach(y => {
+        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
+      });
     }
-
-    const prabhagSet = new Set(validPatients.map(p => p.prabhagNum).filter(Boolean));
-    const sortedPrabhags = Array.from(prabhagSet).sort((a, b) => a - b);
-
-    sortedPrabhags.forEach(p => {
-      prabhagSelect.innerHTML += `<option value="${p}">Prabhag ${p}</option>`;
-    });
   },
 
   bindEvents() {
     const searchInput = document.getElementById('filter-search');
     const diseaseSelect = document.getElementById('filter-disease');
     const zoneSelect = document.getElementById('filter-zone');
-    const prabhagSelect = document.getElementById('filter-prabhag');
     const monthSelect = document.getElementById('filter-month');
-    const ageSelect = document.getElementById('filter-age-group');
+    const yearSelect = document.getElementById('filter-year');
+    const startDateInput = document.getElementById('filter-start-date');
+    const endDateInput = document.getElementById('filter-end-date');
     const facilitySelect = document.getElementById('filter-facility');
     const resetBtn = document.getElementById('filter-reset-btn');
     const exportBtn = document.getElementById('btn-export-csv');
 
     if (searchInput) searchInput.addEventListener('input', () => this.applyFiltersAndRender());
     if (diseaseSelect) diseaseSelect.addEventListener('change', () => this.applyFiltersAndRender());
-    
-    if (zoneSelect) {
-      zoneSelect.addEventListener('change', (e) => {
-        this.updatePrabhagDropdown(e.target.value);
-        this.applyFiltersAndRender();
-      });
-    }
-    
-    if (prabhagSelect) prabhagSelect.addEventListener('change', () => this.applyFiltersAndRender());
+    if (zoneSelect) zoneSelect.addEventListener('change', () => this.applyFiltersAndRender());
     if (monthSelect) monthSelect.addEventListener('change', () => this.applyFiltersAndRender());
-    if (ageSelect) ageSelect.addEventListener('change', () => this.applyFiltersAndRender());
+    if (yearSelect) yearSelect.addEventListener('change', () => this.applyFiltersAndRender());
+    if (startDateInput) startDateInput.addEventListener('change', () => this.applyFiltersAndRender());
+    if (endDateInput) endDateInput.addEventListener('change', () => this.applyFiltersAndRender());
     if (facilitySelect) facilitySelect.addEventListener('change', () => this.applyFiltersAndRender());
 
     if (resetBtn) {
@@ -139,9 +110,10 @@ const App = {
         if (searchInput) searchInput.value = '';
         if (diseaseSelect) diseaseSelect.value = 'ALL';
         if (zoneSelect) zoneSelect.value = 'ALL';
-        this.updatePrabhagDropdown('ALL');
         if (monthSelect) monthSelect.value = 'ALL';
-        if (ageSelect) ageSelect.value = 'ALL';
+        if (yearSelect) yearSelect.value = 'ALL';
+        if (startDateInput) startDateInput.value = '';
+        if (endDateInput) endDateInput.value = '';
         if (facilitySelect) facilitySelect.value = 'ALL';
         this.applyFiltersAndRender();
       });
@@ -177,22 +149,53 @@ const App = {
     const searchVal = (document.getElementById('filter-search')?.value || '').toLowerCase().trim();
     const diseaseVal = document.getElementById('filter-disease')?.value || 'ALL';
     const zoneVal = document.getElementById('filter-zone')?.value || 'ALL';
-    const prabhagVal = document.getElementById('filter-prabhag')?.value || 'ALL';
     const monthVal = document.getElementById('filter-month')?.value || 'ALL';
-    const ageVal = document.getElementById('filter-age-group')?.value || 'ALL';
+    const yearVal = document.getElementById('filter-year')?.value || 'ALL';
+    const startDateVal = document.getElementById('filter-start-date')?.value || '';
+    const endDateVal = document.getElementById('filter-end-date')?.value || '';
     const facilityVal = document.getElementById('filter-facility')?.value || 'ALL';
 
+    const startTs = startDateVal ? new Date(startDateVal).getTime() : null;
+    const endTs = endDateVal ? new Date(endDateVal + 'T23:59:59').getTime() : null;
+
     this.filteredPatients = this.allPatients.filter(p => {
+      // 1. Search (Patient's Name, Hospital, Address ONLY)
       if (searchVal) {
-        const matchStr = `${p.name} ${p.address} ${p.hospital} ${p.disease} ${p.zoneName}`.toLowerCase();
-        if (!matchStr.includes(searchVal)) return false;
+        const nameMatch = (p.name || '').toLowerCase().includes(searchVal);
+        const hospMatch = (p.hospital || '').toLowerCase().includes(searchVal);
+        const addrMatch = (p.address || '').toLowerCase().includes(searchVal);
+
+        if (!nameMatch && !hospMatch && !addrMatch) return false;
       }
 
+      // 2. Disease Filter
       if (diseaseVal !== 'ALL' && p.disease !== diseaseVal) return false;
+
+      // 3. Zone Filter
       if (zoneVal !== 'ALL' && p.zoneNum !== parseInt(zoneVal, 10)) return false;
-      if (prabhagVal !== 'ALL' && p.prabhagNum !== parseInt(prabhagVal, 10)) return false;
+
+      // 4. Month Filter
       if (monthVal !== 'ALL' && p.month !== monthVal) return false;
-      if (ageVal !== 'ALL' && p.ageGroup !== ageVal) return false;
+
+      // 5. Year Filter (New Slicer)
+      if (yearVal !== 'ALL' && String(p.year) !== String(yearVal)) return false;
+
+      // 6. Date Selector (Timeline Calendar Range)
+      if (startTs || endTs) {
+        let pTs = null;
+        if (p.dateObj && !isNaN(p.dateObj.getTime())) {
+          pTs = p.dateObj.getTime();
+        } else if (p.parsedDate) {
+          pTs = new Date(p.parsedDate).getTime();
+        }
+
+        if (pTs) {
+          if (startTs && pTs < startTs) return false;
+          if (endTs && pTs > endTs) return false;
+        }
+      }
+
+      // 7. Facility Type Filter
       if (facilityVal !== 'ALL' && p.facilityType !== facilityVal) return false;
 
       return true;
