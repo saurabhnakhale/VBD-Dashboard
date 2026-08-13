@@ -257,15 +257,23 @@
 
       <!-- Section 2: Visualizations Grid (Row 1) -->
       <section class="dashboard-grid-2">
-        <!-- Chart 1: Epidemic Curve -->
+        <!-- Chart 1: Epidemic Curve & 5-Disease Trendlines -->
         <div class="chart-card">
-          <div class="card-header">
+          <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center;">
             <div class="card-title-group">
               <i class="fa-solid fa-chart-line card-title-icon"></i>
               <div>
-                <h3 class="card-title">1. Epidemic Curve &amp; Temporal Surge</h3>
-                <p class="card-subtitle">Notification date timeline by vector disease</p>
+                <h3 class="card-title">1. Epidemic Curve &amp; 5-Disease Trendlines</h3>
+                <p class="card-subtitle">Surveillance trend across Dengue, Chikungunya, Malaria, JE &amp; Scrub Typhus</p>
               </div>
+            </div>
+            
+            <!-- Granularity Selectors (Daily, Weekly, Monthly, Yearly) -->
+            <div class="trend-granularity-toggle" id="epicurve-granularity-toggle">
+              <button class="btn-granularity active" data-granularity="daily">Daily</button>
+              <button class="btn-granularity" data-granularity="weekly">Weekly</button>
+              <button class="btn-granularity" data-granularity="monthly">Monthly</button>
+              <button class="btn-granularity" data-granularity="yearly">Yearly</button>
             </div>
           </div>
           <div class="chart-container">
