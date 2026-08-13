@@ -680,6 +680,92 @@ const ChartManager = {
   // =========================================================================
   // 5. UPGRADED MULTI-DIMENSIONAL HOTSPOT MAP — ZONE × PRABHAG CASE DENSITY (MINI-DONUT CELL BUBBLES)
   // =========================================================================
+  rebuildZonePrabhagMatrix(dataset) {
+    const container = document.getElementById('hotspot-matrix-container') || document.querySelector('.hotspot-matrix-wrapper') || document.getElementById('zone-prabhag-heatmap-container');
+    if (!container || !dataset || !Array.isArray(dataset)) return;
+
+    // 1. Process and Aggregate Data Safely
+    const matrix = {};
+    const prabhagSet = new Set();
+    const zonesList = ['Zone 1', 'Zone 2', 'Zone 3', 'Zone 4', 'Zone 5', 'Zone 6', 'Zone 7', 'Zone 8', 'Zone 9', 'Zone 10'];
+
+    dataset.forEach(row => {
+      const rawZone = row.Zone || row.zone || row['Zone Name'] || row.zoneName || (row.zoneNum ? `Zone ${row.zoneNum}` : 'Zone 1');
+      let rawPrabhag = row.Prabhag || row.prabhag || row['Prabhag No'] || row.prabhag_no || 'P0';
+      
+      // Normalize Prabhag name (e.g., "16" -> "P16")
+      if (!rawPrabhag.toString().startsWith('P') && rawPrabhag !== 'P0') {
+        rawPrabhag = `P${rawPrabhag}`;
+      }
+
+      prabhagSet.add(rawPrabhag);
+
+      const disease = (row.Disease || row.disease || '').toString().toLowerCase();
+
+      if (!matrix[rawZone]) matrix[rawZone] = {};
+      if (!matrix[rawZone][rawPrabhag]) {
+        matrix[rawZone][rawPrabhag] = { dengue: 0, chikungunya: 0, malaria: 0, total: 0 };
+      }
+
+      if (disease.includes('dengue')) matrix[rawZone][rawPrabhag].dengue++;
+      else if (disease.includes('chikungunya') || disease.includes('chikun')) matrix[rawZone][rawPrabhag].chikungunya++;
+      else if (disease.includes('malaria')) matrix[rawZone][rawPrabhag].malaria++;
+
+      matrix[rawZone][rawPrabhag].total++;
+    });
+
+    const sortedPrabhags = Array.from(prabhagSet).sort((a, b) => {
+      return parseInt(a.replace('P', '')) - parseInt(b.replace('P', ''));
+    });
+
+    // 2. Build HTML Table
+    let tableHTML = `
+      <div style="overflow-x: auto; width: 100%; background: #0b1120; border-radius: 8px; border: 1px solid #1e293b;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: center; color: #f8fafc;">
+          <thead>
+            <tr style="background: #1e293b; color: #94a3b8;">
+              <th style="padding: 8px; border: 1px solid #334155;">Zone \\ Prabhag</th>
+              ${sortedPrabhags.map(p => `<th style="padding: 8px; border: 1px solid #334155;">${p}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    zonesList.forEach(zone => {
+      tableHTML += `<tr><td style="padding: 6px; font-weight: bold; background: #0f172a; border: 1px solid #1e293b; color: #cbd5e1;">${zone}</td>`;
+      
+      sortedPrabhags.forEach(p => {
+        const cell = matrix[zone] && matrix[zone][p];
+        if (cell && cell.total > 0) {
+          let cellText = [];
+          if (cell.dengue > 0) cellText.push(`<span style="color:#a855f7; font-weight:bold;">${cell.dengue}D</span>`);
+          if (cell.chikungunya > 0) cellText.push(`<span style="color:#ec4899; font-weight:bold;">${cell.chikungunya}C</span>`);
+          if (cell.malaria > 0) cellText.push(`<span style="color:#06b6d4; font-weight:bold;">${cell.malaria}M</span>`);
+
+          tableHTML += `<td class="cell-active" style="padding: 6px; border: 1px solid #1e293b; background: #131d31;">
+                          ${cellText.join(' ')}
+                        </td>`;
+        } else {
+          tableHTML += `<td style="padding: 6px; border: 1px solid #1e293b; color: #334155;">-</td>`;
+        }
+      });
+
+      tableHTML += `</tr>`;
+    });
+
+    tableHTML += `
+          </tbody>
+        </table>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-top: 10px; font-size: 12px; color: #94a3b8;">
+        <div>Legend: <span style="color:#a855f7;">● Dengue (D)</span> | <span style="color:#ec4899;">● Chikungunya (C)</span> | <span style="color:#06b6d4;">● Malaria (M)</span></div>
+        <div style="font-weight: bold; color: #ffffff;">Total Cases Displayed: ${dataset.length}</div>
+      </div>
+    `;
+
+    container.innerHTML = tableHTML;
+  },
+
   renderHighRiskCorrelation(patients) {
     const container = document.getElementById('zone-prabhag-heatmap-container');
     if (!container) return;
