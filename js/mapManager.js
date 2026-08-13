@@ -1,11 +1,10 @@
 /**
- * MapManager.js - Manages Leaflet.js GIS spatial mapping, Ward GeoJSON polygon boundaries (wards_simplified.geojson),
- * zone density layers, hospital pin locations, and Sheet 2 High Risk Area overlays.
+ * MapManager.js - Leaflet.js GIS spatial mapping with Ward GeoJSON boundaries (wards_simplified.geojson / WARDS_GEOJSON),
+ * high-contrast choropleth polygons, hospital pins, and Sheet 2 High Risk overlays.
  */
 
-// Coordinates for Nagpur Zones and key localities
+// Coordinates for Nagpur Localities & Landmarks
 const LOCALITY_COORDS = {
-  // Zone 10: Mangalwari / Borgaon / Gorewada
   "Borgaon": [21.1850, 79.0550],
   "Bhupesh Nagar": [21.1880, 79.0520],
   "Gorewada": [21.1950, 79.0480],
@@ -14,7 +13,6 @@ const LOCALITY_COORDS = {
   "Jaripatka": [21.1860, 79.0900],
   "Patel Nagar": [21.1830, 79.0560],
 
-  // Zone 2: Dharampeth / Seminary Hills / Katol Road
   "Katol Road": [21.1700, 79.0600],
   "Seminary Hills": [21.1620, 79.0550],
   "Friends Colony": [21.1780, 79.0490],
@@ -23,39 +21,31 @@ const LOCALITY_COORDS = {
   "Shankar Nagar": [21.1380, 79.0680],
   "Futala": [21.1540, 79.0480],
 
-  // Zone 1: Laxminagar
   "Laxmi Nagar": [21.1210, 79.0650],
   "Chatrapati Nagar": [21.1120, 79.0680],
   "Pratap Nagar": [21.1180, 79.0550],
   "Sonegaon": [21.0920, 79.0540],
 
-  // Zone 3: Hanumannagar
   "Hanuman Nagar": [21.1250, 79.0950],
   "Manewada": [21.1020, 79.1020],
   "Hudkeshwar": [21.0900, 79.1150],
 
-  // Zone 4: Dhantoli
   "Dhantoli": [21.1350, 79.0820],
   "Ajni": [21.1200, 79.0880],
   "Manish Nagar": [21.0980, 79.0780],
 
-  // Zone 5: Nehru Nagar
   "Nandanvan": [21.1360, 79.1200],
   "Wathoda": [21.1420, 79.1380],
 
-  // Zone 6: Gandhibagh
   "Mahal": [21.1450, 79.1020],
   "Mominpura": [21.1560, 79.0950],
 
-  // Zone 7: Satranjipura
   "Satranjipura": [21.1680, 79.1050],
   "Itwari": [21.1580, 79.1100],
 
-  // Zone 8: Lakadganj
   "Lakadganj": [21.1520, 79.1250],
   "Pardi": [21.1600, 79.1450],
 
-  // Zone 9: Ashinagar
   "Nari": [21.2010, 79.0950],
   "Vaishali Nagar": [21.1850, 79.1150]
 };
@@ -74,33 +64,17 @@ const HOSPITAL_COORDS = {
   "INDORA UPHC": [21.1780, 79.0890]
 };
 
-// Zone Centroids
-const ZONE_CENTROIDS = {
-  1: [21.1150, 79.0600],
-  2: [21.1550, 79.0580],
-  3: [21.1100, 79.1000],
-  4: [21.1180, 79.0820],
-  5: [21.1350, 79.1280],
-  6: [21.1480, 79.0980],
-  7: [21.1650, 79.1080],
-  8: [21.1550, 79.1350],
-  9: [21.1900, 79.1050],
-  10: [21.1880, 79.0650]
-};
-
 const MapManager = {
   map: null,
   markersGroup: null,
   highRiskGroup: null,
-  zoneLayerGroup: null,
   geoJsonGroup: null,
-  geoJsonData: null,
-  isGeoJsonLoading: false,
+  hasFittedBounds: false,
 
   init() {
     if (this.map) return;
 
-    // Center on Nagpur Municipal Corporation
+    // Center on Nagpur
     this.map = L.map('map-container', {
       center: [21.1458, 79.0882],
       zoom: 12,
@@ -115,26 +89,10 @@ const MapManager = {
     }).addTo(this.map);
 
     this.geoJsonGroup = L.layerGroup().addTo(this.map);
-    this.zoneLayerGroup = L.layerGroup().addTo(this.map);
     this.highRiskGroup = L.layerGroup().addTo(this.map);
     this.markersGroup = L.layerGroup().addTo(this.map);
 
     this.addMapLegend();
-  },
-
-  async fetchWardsGeoJson() {
-    if (this.geoJsonData || this.isGeoJsonLoading) return;
-    this.isGeoJsonLoading = true;
-    try {
-      const response = await fetch('wards_simplified.geojson');
-      if (response.ok) {
-        this.geoJsonData = await response.json();
-      }
-    } catch (err) {
-      console.warn('Unable to load wards_simplified.geojson:', err);
-    } finally {
-      this.isGeoJsonLoading = false;
-    }
   },
 
   extractPrabhagNumber(nameStr) {
@@ -143,20 +101,21 @@ const MapManager = {
     return match ? parseInt(match[0], 10) : null;
   },
 
-  async render(patients, highRiskAreas) {
-    this.init();
-
-    // Fetch GeoJSON if not loaded
-    if (!this.geoJsonData) {
-      await this.fetchWardsGeoJson();
+  getGeoJsonData() {
+    if (typeof WARDS_GEOJSON !== 'undefined' && WARDS_GEOJSON) {
+      return WARDS_GEOJSON;
     }
+    return null;
+  },
+
+  render(patients, highRiskAreas) {
+    this.init();
 
     this.geoJsonGroup.clearLayers();
     this.markersGroup.clearLayers();
     this.highRiskGroup.clearLayers();
-    this.zoneLayerGroup.clearLayers();
 
-    // Calculate per-prabhag disease breakdown from filtered patients
+    // 1. Calculate per-prabhag case breakdown
     const prabhagCounts = {};
     patients.forEach(p => {
       const pNum = p.prabhag ? parseInt(p.prabhag, 10) : null;
@@ -174,43 +133,43 @@ const MapManager = {
       }
     });
 
-    // 1. Render Ward GeoJSON Polygon Boundaries (wards_simplified.geojson)
-    if (this.geoJsonData) {
-      const geoJsonLayer = L.geoJSON(this.geoJsonData, {
+    // 2. Render Ward Polygons (wards_simplified.geojson)
+    const geoData = this.getGeoJsonData();
+    if (geoData) {
+      const geoJsonLayer = L.geoJSON(geoData, {
         style: (feature) => {
           const rawName = feature.properties?.name || '';
           const pNum = this.extractPrabhagNumber(rawName);
           const count = pNum && prabhagCounts[pNum] ? prabhagCounts[pNum].Total : 0;
 
-          // Color scale by outbreak burden
-          let fillColor = 'rgba(59, 130, 246, 0.12)';
-          let strokeColor = '#3b82f6';
-          let weight = 1.2;
+          let fillColor = 'rgba(99, 102, 241, 0.25)'; // Baseline Indigo
+          let strokeColor = '#818cf8';
+          let weight = 1.8;
 
           if (count > 15) {
-            fillColor = 'rgba(239, 68, 68, 0.65)'; // High Outbreak Red
+            fillColor = 'rgba(239, 68, 68, 0.75)'; // Crimson High Risk
             strokeColor = '#f43f5e';
-            weight = 2;
+            weight = 2.5;
           } else if (count > 8) {
-            fillColor = 'rgba(236, 72, 153, 0.55)'; // Pink
-            strokeColor = '#ec4899';
-            weight = 1.8;
+            fillColor = 'rgba(236, 72, 153, 0.65)'; // Pink
+            strokeColor = '#f472b6';
+            weight = 2.2;
           } else if (count > 3) {
-            fillColor = 'rgba(245, 158, 11, 0.45)'; // Amber
-            strokeColor = '#f59e0b';
-            weight = 1.5;
+            fillColor = 'rgba(245, 158, 11, 0.55)'; // Amber
+            strokeColor = '#fbbf24';
+            weight = 2.0;
           } else if (count > 0) {
-            fillColor = 'rgba(6, 182, 212, 0.35)'; // Cyan
-            strokeColor = '#06b6d4';
-            weight = 1.4;
+            fillColor = 'rgba(6, 182, 212, 0.45)'; // Cyan
+            strokeColor = '#22d3ee';
+            weight = 1.8;
           }
 
           return {
             fillColor: fillColor,
-            fillOpacity: 0.6,
+            fillOpacity: 0.7,
             color: strokeColor,
             weight: weight,
-            opacity: 0.85
+            opacity: 0.95
           };
         },
         onEachFeature: (feature, layer) => {
@@ -223,11 +182,11 @@ const MapManager = {
 
           layer.bindPopup(`
             <div style="color: #0f172a; padding: 4px; min-width: 190px;">
-              <strong style="color: #6366f1; font-size: 14px;">🏛️ ${wardName}</strong><br/>
+              <strong style="color: #4f46e5; font-size: 14px;">🏛️ ${wardName}</strong><br/>
               <span style="color: #475569; font-size: 12px;"><b>Municipal Zone:</b> ${wardZone || 'NMC Zone'}</span>
               <hr style="margin: 6px 0; border: 0; border-top: 1px solid #cbd5e1;"/>
-              <div style="font-size: 13px; font-weight: bold; color: #1e293b; margin-bottom: 4px;">
-                📊 Active Cases Burden: <span style="color: #ef4444;">${pData.Total} cases</span>
+              <div style="font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px;">
+                📊 Active Burden: <span style="color: #dc2626;">${pData.Total} cases</span>
               </div>
               <div style="font-size: 11px; color: #334155; line-height: 1.5;">
                 • 🦟 <b>Dengue:</b> ${pData.Dengue}<br/>
@@ -241,7 +200,7 @@ const MapManager = {
           layer.on({
             mouseover: (e) => {
               const l = e.target;
-              l.setStyle({ weight: 3.5, color: '#ffffff', fillOpacity: 0.85 });
+              l.setStyle({ weight: 3.5, color: '#ffffff', fillOpacity: 0.9 });
               if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
                 l.bringToFront();
               }
@@ -254,9 +213,22 @@ const MapManager = {
       });
 
       this.geoJsonGroup.addLayer(geoJsonLayer);
+
+      // Fit map bounds to GeoJSON on initial load
+      if (!this.hasFittedBounds) {
+        try {
+          const bounds = geoJsonLayer.getBounds();
+          if (bounds.isValid()) {
+            this.map.fitBounds(bounds, { padding: [20, 20] });
+            this.hasFittedBounds = true;
+          }
+        } catch (e) {
+          console.warn('fitBounds warning:', e);
+        }
+      }
     }
 
-    // 2. Plot Sheet 2 High-Risk Areas
+    // 3. Plot Sheet 2 High-Risk Hotspot Overlays
     if (highRiskAreas && highRiskAreas.length > 0) {
       highRiskAreas.forEach(hr => {
         const allLocs = [
@@ -272,14 +244,14 @@ const MapManager = {
             const circle = L.circle(coords, {
               color: '#ef4444',
               fillColor: '#f43f5e',
-              fillOpacity: 0.35,
-              radius: 450,
+              fillOpacity: 0.45,
+              radius: 400,
               weight: 2
             });
 
             circle.bindPopup(`
               <div style="color: #0f172a; padding: 4px;">
-                <strong style="color: #ef4444;">🚨 SHEET 2 HIGH RISK ZONE</strong><br/>
+                <strong style="color: #ef4444;">🚨 SHEET 2 HIGH RISK HOTSPOT</strong><br/>
                 <b>Locality:</b> ${locName}<br/>
                 <b>Zone:</b> ${hr.zoneName || `Zone ${hr.zoneNum}`}<br/>
                 <b>Prabhag:</b> ${hr.prabhag}<br/>
@@ -294,36 +266,6 @@ const MapManager = {
         });
       });
     }
-
-    // 3. Plot Zone Densities (Circles scaled by patient count)
-    const zoneCounts = {};
-    patients.forEach(p => {
-      const z = p.zoneNum || 10;
-      zoneCounts[z] = (zoneCounts[z] || 0) + 1;
-    });
-
-    Object.entries(ZONE_CENTROIDS).forEach(([zNum, coords]) => {
-      const count = zoneCounts[zNum] || 0;
-      if (count > 0) {
-        const radius = Math.min(1800, 400 + (count * 15));
-        const circle = L.circle(coords, {
-          color: '#6366f1',
-          fillColor: '#818cf8',
-          fillOpacity: 0.25,
-          radius: radius,
-          weight: 1.5
-        });
-
-        circle.bindPopup(`
-          <div style="color: #0f172a;">
-            <strong style="color: #6366f1;">Zone ${zNum}: ${ZONE_MAP[zNum] || ''}</strong><br/>
-            <b>Filtered Patients:</b> ${count} cases<br/>
-          </div>
-        `);
-
-        this.zoneLayerGroup.addLayer(circle);
-      }
-    });
 
     // 4. Plot Hospitals
     Object.entries(HOSPITAL_COORDS).forEach(([hospName, coords]) => {
@@ -351,9 +293,11 @@ const MapManager = {
       const div = L.DomUtil.create('div', 'map-legend-box');
       div.innerHTML = `
         <strong style="display:block; margin-bottom: 6px;">GIS Spatial Legend</strong>
-        <div class="map-legend-item"><div class="legend-color-dot" style="background: #ef4444;"></div> High Risk Outbreak Ward</div>
-        <div class="map-legend-item"><div class="legend-color-dot" style="background: #06b6d4;"></div> Low/Moderate Case Ward</div>
-        <div class="map-legend-item"><div class="legend-color-dot" style="background: #6366f1;"></div> Zone Volume Circle</div>
+        <div class="map-legend-item"><div class="legend-color-dot" style="background: #ef4444;"></div> High Outbreak Ward (>15 cases)</div>
+        <div class="map-legend-item"><div class="legend-color-dot" style="background: #ec4899;"></div> Moderate Outbreak Ward (9-15 cases)</div>
+        <div class="map-legend-item"><div class="legend-color-dot" style="background: #f59e0b;"></div> Emerging Outbreak Ward (4-8 cases)</div>
+        <div class="map-legend-item"><div class="legend-color-dot" style="background: #06b6d4;"></div> Low Case Ward (1-3 cases)</div>
+        <div class="map-legend-item"><div class="legend-color-dot" style="background: #6366f1;"></div> Baseline Ward (0 cases)</div>
         <div class="map-legend-item"><div class="legend-color-dot" style="background: #10b981;"></div> Hospital / UPHC Node</div>
       `;
       return div;
