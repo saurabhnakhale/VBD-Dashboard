@@ -1,6 +1,7 @@
 /**
- * MapManager.js - Leaflet.js GIS spatial mapping with Ward GeoJSON boundaries (wards_simplified.geojson / WARDS_GEOJSON),
- * high-contrast choropleth polygons, hospital pins, and Sheet 2 High Risk overlays.
+ * MapManager.js - Leaflet.js GIS spatial mapping with Ward GeoJSON boundaries (wards.geojson / WARDS_GEOJSON),
+ * Ward-to-Zone Mapping (ward_zone_mapping.json / WARD_ZONE_MAPPING), high-contrast choropleth polygons,
+ * hospital pins, and Sheet 2 High Risk overlays.
  */
 
 // Coordinates for Nagpur Localities & Landmarks
@@ -109,7 +110,17 @@ const MapManager = {
     this.markersGroup.clearLayers();
     this.highRiskGroup.clearLayers();
 
-    // 1. Calculate per-prabhag case breakdown
+    // 1. Build lookup dictionary from WARD_ZONE_MAPPING
+    const wardZoneLookup = {};
+    if (typeof WARD_ZONE_MAPPING !== 'undefined' && Array.isArray(WARD_ZONE_MAPPING)) {
+      WARD_ZONE_MAPPING.forEach(item => {
+        if (item.ward && item.zone) {
+          wardZoneLookup[item.ward.trim()] = item.zone.trim();
+        }
+      });
+    }
+
+    // 2. Calculate per-prabhag case breakdown
     const prabhagCounts = {};
     patients.forEach(p => {
       const pNum = p.prabhag ? parseInt(p.prabhag, 10) : null;
@@ -120,25 +131,25 @@ const MapManager = {
         const dStr = (p.disease || '').toLowerCase();
         if (dStr.includes('chikun')) prabhagCounts[pNum].Chikungunya++;
         else if (dStr.includes('malaria')) prabhagCounts[pNum].Malaria++;
-        else if (dStr.includes('scrub') || dStr.includes('typhus')) prabhagCounts[pNum].ScrubTyphus++;
+        else if (dStr.includes('japanese') || dStr.includes('encephalitis') || dStr.includes('je') || dStr.includes('scrub') || dStr.includes('typhus')) prabhagCounts[pNum].ScrubTyphus++;
         else prabhagCounts[pNum].Dengue++;
 
         prabhagCounts[pNum].Total++;
       }
     });
 
-    // 2. Fetch or load GeoJSON features
+    // 3. Fetch or load GeoJSON features (wards.geojson / WARDS_GEOJSON)
     let geoData = (typeof WARDS_GEOJSON !== 'undefined' && WARDS_GEOJSON) ? WARDS_GEOJSON : this.geoJsonData;
 
     if (!geoData) {
       try {
-        const resp = await fetch('wards_simplified.geojson');
+        const resp = await fetch('wards.geojson');
         if (resp.ok) {
           geoData = await resp.json();
           this.geoJsonData = geoData;
         }
       } catch (e) {
-        console.warn("Unable to fetch wards_simplified.geojson fallback:", e);
+        console.warn("Unable to fetch wards.geojson fallback:", e);
       }
     }
 
@@ -173,7 +184,7 @@ const MapManager = {
 
           return {
             fillColor: fillColor,
-            fillOpacity: 0.55,
+            fillOpacity: 0.65,
             color: strokeColor,
             weight: weight,
             opacity: 0.95
@@ -181,19 +192,19 @@ const MapManager = {
         },
         onEachFeature: (feature, layer) => {
           const wardName = (feature.properties?.name || 'Ward').trim();
-          const wardZone = (feature.properties?.description || '').trim();
+          const mappedZone = wardZoneLookup[wardName] || (feature.properties?.description || 'NMC Zone').trim();
           const pNum = this.extractPrabhagNumber(wardName);
           const pData = (pNum && prabhagCounts[pNum])
             ? prabhagCounts[pNum]
             : { Total: 0, Dengue: 0, Chikungunya: 0, Malaria: 0, ScrubTyphus: 0 };
 
           layer.bindPopup(`
-            <div style="color: #0f172a; padding: 4px; min-width: 190px;">
+            <div style="color: #0f172a; padding: 4px; min-width: 200px;">
               <strong style="color: #4f46e5; font-size: 14px;">🏛️ ${wardName}</strong><br/>
-              <span style="color: #475569; font-size: 12px;"><b>Municipal Zone:</b> ${wardZone || 'NMC Zone'}</span>
+              <span style="color: #475569; font-size: 12px;"><b>Mapped Zone:</b> ${mappedZone}</span>
               <hr style="margin: 6px 0; border: 0; border-top: 1px solid #cbd5e1;"/>
               <div style="font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px;">
-                📊 Active Burden: <span style="color: #dc2626;">${pData.Total} cases</span>
+                📊 Active Case Burden: <span style="color: #dc2626;">${pData.Total} cases</span>
               </div>
               <div style="font-size: 11px; color: #334155; line-height: 1.5;">
                 • 🦟 <b>Dengue:</b> ${pData.Dengue}<br/>
@@ -235,7 +246,7 @@ const MapManager = {
       }
     }
 
-    // 3. Plot Sheet 2 High-Risk Hotspot Overlays
+    // 4. Plot Sheet 2 High-Risk Hotspot Overlays
     if (highRiskAreas && highRiskAreas.length > 0) {
       highRiskAreas.forEach(hr => {
         const allLocs = [
@@ -274,7 +285,7 @@ const MapManager = {
       });
     }
 
-    // 4. Plot Hospitals
+    // 5. Plot Hospitals
     Object.entries(HOSPITAL_COORDS).forEach(([hospName, coords]) => {
       const hospIcon = L.divIcon({
         className: 'custom-hosp-marker',
