@@ -1,6 +1,6 @@
 /**
  * ChartManager.js - Manages all Chart.js visualizations for the dashboard.
- * Chart 5: Spatial High-Risk Locality vs. Disease Matrix Heatmap with Action Banner.
+ * Chart 5: Top High-Risk Areas Disease Breakdown (Horizontal Stacked Bar Chart).
  */
 
 const ChartManager = {
@@ -680,13 +680,18 @@ const ChartManager = {
   },
 
   // =========================================================================
-  // 5. SPATIAL HIGH-RISK LOCALITY VS. DISEASE MATRIX HEATMAP (REPLACES CHART 5)
+  // 5. TOP HIGH-RISK AREAS DISEASE BREAKDOWN (HORIZONTAL STACKED BAR CHART)
   // =========================================================================
   renderHighRiskCorrelation(patients) {
-    const container = document.getElementById('highrisk-heatmap-grid');
-    if (!container) return;
+    this.destroyChart('chart-highrisk');
+    const canvas = document.getElementById('chart-highrisk');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
     const locMap = {};
+    const totalMunicipalCases = patients.length || 1;
 
     patients.forEach(p => {
       let loc = p.address ? String(p.address).trim() : '';
@@ -694,12 +699,22 @@ const ChartManager = {
         loc = p.prabhag ? `Prabhag ${p.prabhag}` : `Zone ${p.zoneNum || 1}`;
       }
 
-      // Extract core locality name
       loc = loc.split(',')[0].split('-')[0].trim();
       if (!loc || loc.length < 3) loc = `Zone ${p.zoneNum || 1}`;
 
       if (!locMap[loc]) {
-        locMap[loc] = { Dengue: 0, Chikungunya: 0, Malaria: 0, 'Scrub Typhus': 0, Total: 0 };
+        locMap[loc] = {
+          Dengue: 0,
+          Chikungunya: 0,
+          Malaria: 0,
+          JE_Other: 0,
+          Total: 0,
+          isSheet2Match: false
+        };
+      }
+
+      if (p.isHighRiskMatch) {
+        locMap[loc].isSheet2Match = true;
       }
 
       const dStr = (p.disease || '').toLowerCase();
@@ -707,109 +722,131 @@ const ChartManager = {
         locMap[loc]['Chikungunya']++;
       } else if (dStr.includes('malaria')) {
         locMap[loc]['Malaria']++;
-      } else if (dStr.includes('scrub') || dStr.includes('typhus')) {
-        locMap[loc]['Scrub Typhus']++;
-      } else {
+      } else if (dStr.includes('dengue')) {
         locMap[loc]['Dengue']++;
+      } else {
+        locMap[loc]['JE_Other']++;
       }
 
       locMap[loc].Total++;
     });
 
-    // Top 8 - 10 localities by total case volume
-    const topLocalities = Object.entries(locMap)
+    // Top 10 High-Risk Localities sorted by total case volume
+    const top10 = Object.entries(locMap)
       .sort((a, b) => b[1].Total - a[1].Total)
       .slice(0, 10);
 
-    const diseases = ['Dengue', 'Chikungunya', 'Malaria', 'Scrub Typhus'];
-
-    // Color intensity scale: 0-5 navy/slate, 15-30 orange, 50+ vivid crimson/purple
-    const getCellColor = (val) => {
-      if (val === 0) return { bg: '#0f172a', text: '#475569' };
-      if (val <= 5) return { bg: 'rgba(30, 41, 59, 0.9)', text: '#cbd5e1' };
-      if (val <= 14) return { bg: 'rgba(14, 116, 144, 0.85)', text: '#ffffff' };
-      if (val <= 30) return { bg: 'rgba(234, 88, 12, 0.9)', text: '#ffffff' };
-      if (val <= 49) return { bg: 'rgba(225, 29, 72, 0.95)', text: '#ffffff' };
-      return { bg: 'rgba(147, 51, 234, 0.95)', text: '#ffffff' };
-    };
-
-    const getActionText = (loc, dis, val) => {
-      if (val === 0) return `Low surveillance activity for ${dis} in ${loc}. Maintain routine vector monitoring.`;
-      if (dis === 'Dengue') return `🚨 High Dengue Risk in ${loc} (${val} cases): Initiate targeted anti-larval chemical spray & indoor fogging.`;
-      if (dis === 'Chikungunya') return `⚠️ Chikungunya Surge in ${loc} (${val} cases): Deploy door-to-door fever surveillance & vector breeding control.`;
-      if (dis === 'Malaria') return `🔬 Malaria Alert in ${loc} (${val} cases): Execute thermal fogging, blood slide collection & water chlorination.`;
-      return `🐛 Scrub Typhus Alert in ${loc} (${val} cases): Conduct mite vector control, rodent surveillance & sanitation drive.`;
-    };
-
-    let tableHtml = `
-      <div class="locality-heatmap-wrapper">
-        <div id="locality-action-banner" class="locality-action-banner">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          <span id="locality-action-text">Hover over any matrix cell to view recommended epidemiological field response.</span>
-        </div>
-
-        <table class="locality-heatmap-table">
-          <thead>
-            <tr>
-              <th class="loc-head-th">High-Risk Locality / Prabhag</th>
-              <th>🦟 Dengue</th>
-              <th>🦠 Chikungunya</th>
-              <th>🔬 Malaria</th>
-              <th>🐛 Scrub Typhus</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    topLocalities.forEach(([locName, data]) => {
-      tableHtml += `<tr>`;
-      tableHtml += `<td class="loc-name-cell"><i class="fa-solid fa-location-dot" style="color: #6366f1; margin-right: 6px;"></i>${locName}</td>`;
-
-      diseases.forEach(dis => {
-        const count = data[dis] || 0;
-        const color = getCellColor(count);
-        const action = getActionText(locName, dis, count);
-
-        tableHtml += `
-          <td class="heat-cell" 
-              style="background: ${color.bg}; color: ${color.text};"
-              data-action="${action}"
-              data-loc="${locName}"
-              data-dis="${dis}"
-              data-count="${count}">
-            ${count}
-          </td>
-        `;
-      });
-
-      tableHtml += `<td class="loc-total-cell">${data.Total}</td>`;
-      tableHtml += `</tr>`;
+    const labels = top10.map(([loc, data]) => {
+      const badgeSymbol = data.isSheet2Match ? '🔥 [Sheet 2 Hotspot]' : '⚠️ [Emerging Cluster]';
+      return `${loc} ${badgeSymbol}`;
     });
 
-    tableHtml += `
-          </tbody>
-        </table>
-      </div>
-    `;
+    const dengueData = top10.map(s => s[1].Dengue);
+    const chikData = top10.map(s => s[1].Chikungunya);
+    const malariaData = top10.map(s => s[1].Malaria);
+    const otherData = top10.map(s => s[1].JE_Other);
 
-    container.innerHTML = tableHtml;
+    const inlineHorizontalLabelsPlugin = {
+      id: 'horizontalBarLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta(datasetIndex);
+          if (meta.hidden) return;
 
-    // Attach hover listeners for action banner
-    const cells = container.querySelectorAll('.heat-cell');
-    const bannerText = document.getElementById('locality-action-text');
+          meta.data.forEach((element, index) => {
+            const val = dataset.data[index];
+            if (val && val > 0) {
+              const barX = element.x;
+              const barBase = element.base;
+              const segmentWidth = Math.abs(barX - barBase);
 
-    cells.forEach(cell => {
-      cell.addEventListener('mouseenter', () => {
-        if (bannerText) {
-          bannerText.innerHTML = cell.dataset.action;
+              if (segmentWidth > 12) {
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(val, barBase + (barX - barBase) / 2, element.y);
+                ctx.restore();
+              }
+            }
+          });
+        });
+      }
+    };
+
+    this.charts['chart-highrisk'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Dengue', data: dengueData, backgroundColor: '#a855f7', borderRadius: 4 },
+          { label: 'Chikungunya', data: chikData, backgroundColor: '#ec4899', borderRadius: 4 },
+          { label: 'Malaria', data: malariaData, backgroundColor: '#06b6d4', borderRadius: 4 },
+          { label: 'Other VBDs / Scrub Typhus', data: otherData, backgroundColor: '#f59e0b', borderRadius: 4 }
+        ]
+      },
+      plugins: [inlineHorizontalLabelsPlugin],
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: '#94a3b8' },
+            title: { display: true, text: 'Total Case Count', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
+          },
+          y: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { color: '#f8fafc', font: { size: 11, weight: '600' } }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: '#f8fafc', font: { size: 12, weight: 'bold' } }
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              title: (items) => {
+                const labelStr = items[0].label;
+                return `Locality: ${labelStr}`;
+              },
+              label: (item) => {
+                const locIndex = item.dataIndex;
+                const locData = top10[locIndex][1];
+                const totalLocCases = locData.Total || 1;
+                const val = item.raw;
+                const pctLoc = ((val / totalLocCases) * 100).toFixed(1);
+                return `${item.dataset.label}: ${val} cases (${pctLoc}% of locality)`;
+              },
+              afterBody: (items) => {
+                const locIndex = items[0].dataIndex;
+                const locData = top10[locIndex][1];
+                const totalLocCases = locData.Total;
+                const pctCity = ((totalLocCases / totalMunicipalCases) * 100).toFixed(1);
+                const statusStr = locData.isSheet2Match ? '🔥 Designated Sheet 2 Hotspot' : '⚠️ New Emerging Outbreak Cluster';
+
+                return [
+                  '',
+                  `📍 Status: ${statusStr}`,
+                  `📊 Total Locality Cases: ${totalLocCases} (${pctCity}% share of municipal total)`,
+                  ` • Dengue: ${locData.Dengue}`,
+                  ` • Chikungunya: ${locData.Chikungunya}`,
+                  ` • Malaria: ${locData.Malaria}`,
+                  ` • Other VBDs / Scrub Typhus: ${locData.JE_Other}`
+                ];
+              }
+            }
+          }
         }
-      });
-      cell.addEventListener('mouseleave', () => {
-        if (bannerText) {
-          bannerText.textContent = 'Hover over any matrix cell to view recommended epidemiological field response.';
-        }
-      });
+      }
     });
   },
 

@@ -317,7 +317,7 @@
         </div>
       </section>
 
-      <!-- Section 3: Visualizations Grid (Row 2: Zone/Prabhag & High Risk Locality Matrix Heatmap) -->
+      <!-- Section 3: Visualizations Grid (Row 2: Zone/Prabhag & Top High Risk Areas Disease Breakdown) -->
       <section class="dashboard-grid-2">
         <!-- Chart 4: Dynamic Zone & Prabhag Case Distribution (With Control Header & Drill-Down) -->
         <div class="chart-card">
@@ -365,20 +365,19 @@
           </div>
         </div>
 
-        <!-- Chart 5: High-Risk Locality vs. Disease Matrix Heatmap -->
+        <!-- Chart 5: Top High-Risk Areas Disease Breakdown -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-shield-virus card-title-icon"></i>
               <div>
-                <h3 class="card-title">5. High-Risk Locality vs. Disease Matrix Heatmap</h3>
-                <p class="card-subtitle">Spatial disease intensity matrix across top high-risk localities &amp; recommended field responses</p>
+                <h3 class="card-title">5. Top High-Risk Areas Disease Breakdown</h3>
+                <p class="card-subtitle">Horizontal stacked disease breakdown across top high-risk localities &amp; Sheet 2 hotspots</p>
               </div>
             </div>
           </div>
-          <div class="chart-container" style="overflow-x: auto; padding: 0.5rem 0;">
-            <canvas id="chart-highrisk" style="display: none;"></canvas>
-            <div id="highrisk-heatmap-grid"></div>
+          <div class="chart-container">
+            <canvas id="chart-highrisk"></canvas>
           </div>
         </div>
       </section>
