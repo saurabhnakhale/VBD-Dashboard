@@ -13,37 +13,37 @@
     if (document.getElementById('vbd-weather-container')) return;
 
     const weatherSection = document.createElement('section');
-    weatherSection.className = 'vbd-weather-grid';
+    weatherSection.className = 'weather-kpi-grid vbd-weather-grid';
     weatherSection.id = 'vbd-weather-container';
     weatherSection.innerHTML = `
-      <div class="vbd-weather-card">
+      <div class="weather-card vbd-weather-card">
         <div class="vbd-weather-header">
           <span>🌡️ Nagpur Temperature</span>
           <span title="Live ambient temperature for Nagpur Municipal Area">ⓘ</span>
         </div>
-        <div class="vbd-weather-value" id="vbd-temp">-- °C</div>
+        <div class="weather-card-value vbd-weather-value" id="vbd-temp">-- °C</div>
         <div class="vbd-weather-footer">
           <span class="vbd-badge vbd-badge-live" id="vbd-time">● Live • Connecting...</span>
         </div>
       </div>
 
-      <div class="vbd-weather-card">
+      <div class="weather-card vbd-weather-card">
         <div class="vbd-weather-header">
           <span>💧 Relative Humidity</span>
           <span title="Relative humidity >60% accelerates vector breeding">ⓘ</span>
         </div>
-        <div class="vbd-weather-value" id="vbd-humidity">-- %</div>
+        <div class="weather-card-value vbd-weather-value" id="vbd-humidity">-- %</div>
         <div class="vbd-weather-footer">
           <span class="vbd-badge vbd-badge-warning" id="vbd-risk">↑ Vector-Borne Risk Factor</span>
         </div>
       </div>
 
-      <div class="vbd-weather-card">
+      <div class="weather-card vbd-weather-card">
         <div class="vbd-weather-header">
           <span>🌧️ Precipitation / Rainfall</span>
           <span title="Current precipitation index">ⓘ</span>
         </div>
-        <div class="vbd-weather-value" id="vbd-rainfall">-- mm</div>
+        <div class="weather-card-value vbd-weather-value" id="vbd-rainfall">-- mm</div>
         <div class="vbd-weather-footer">
           <span class="vbd-badge vbd-badge-info">↑ Waterlogging Index</span>
         </div>
