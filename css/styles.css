@@ -171,12 +171,13 @@ body {
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
 }
 
-/* 1. DOM Order Override (Flexbox Container) */
+/* 1. DOM Order & Top Section Container */
 .dashboard-top-wrapper {
   display: flex;
   flex-direction: column;
 }
 
+/* Weather KPI Grid FIRST (Top Section) */
 .weather-kpi-grid,
 .vbd-weather-grid {
   order: 1; /* Move Weather to Top */
@@ -184,24 +185,25 @@ body {
   justify-content: center;
   gap: 16px;
   margin-top: 1.25rem;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   padding: 0 2rem;
   width: 100%;
 }
 
+/* Dynamic Filter Bar Toolbar SECOND (Below Weather) */
 .filter-bar-container {
   order: 2; /* Move Filters to Bottom */
   margin-bottom: 24px;
 }
 
-/* 2. Weather Card - Center Alignment & Inline Value + Badge */
+/* 2. Weather Card - Center Alignment, Compact Sizing & Side-by-Side Inline Value + Badge */
 .weather-card,
 .vbd-weather-card {
   display: flex;
   flex-direction: column;
   align-items: center; /* Horizontally Center Content */
   justify-content: center;
-  padding: 12px 20px !important;
+  padding: 10px 18px !important; /* Compact minimal padding */
   text-align: center;
   background: var(--bg-card);
   border: 1px solid var(--border-card);
@@ -228,6 +230,7 @@ body {
   color: var(--text-sub);
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  text-align: center;
 }
 
 .weather-card-body {
@@ -235,7 +238,7 @@ body {
   align-items: center; /* Side-by-Side Alignment */
   justify-content: center;
   gap: 12px; /* Space between Value and Badge */
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .weather-card-value,
@@ -250,7 +253,7 @@ body {
 .vbd-badge {
   margin-top: 0 !important; /* Clear top margins to keep inline */
   white-space: nowrap !important;
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 700;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;

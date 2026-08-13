@@ -1,21 +1,19 @@
 /**
  * WeatherManager.js - Live Environmental & Vector Risk Surveillance for Nagpur
- * Fetches real-time ambient temperature, humidity, and rainfall from Open-Meteo API.
- * Structures cards with weather-card-body for side-by-side inline value + status badge alignment.
+ * Displays Nagpur Temperature, Relative Humidity, and Precipitation / Rainfall.
+ * Centers all text & places numerical value + status badge side-by-side in a single row.
  */
 
 (function () {
-  // 1. Inject Live Weather Grid HTML into Top Wrapper (Order 1)
   function attachToDashboard() {
-    // Avoid duplicate injection
     if (document.getElementById('vbd-weather-container')) return;
 
-    let targetContainer = document.getElementById('weather-slot');
-    if (!targetContainer) {
-      targetContainer = document.querySelector('.dashboard-top-wrapper') || document.querySelector('main');
+    // Target top wrapper or slot
+    let topWrapper = document.querySelector('.dashboard-top-wrapper');
+    if (!topWrapper) {
+      topWrapper = document.querySelector('main');
     }
-
-    if (!targetContainer) return;
+    if (!topWrapper) return;
 
     const weatherSection = document.createElement('section');
     weatherSection.className = 'weather-kpi-grid vbd-weather-grid';
@@ -61,14 +59,10 @@
       </div>
     `;
 
-    if (targetContainer.id === 'weather-slot') {
-      targetContainer.appendChild(weatherSection);
-    } else {
-      targetContainer.insertBefore(weatherSection, targetContainer.firstChild);
-    }
+    // Ensure Weather is ALWAYS the FIRST element in top wrapper (above Filter Bar)
+    topWrapper.insertBefore(weatherSection, topWrapper.firstChild);
   }
 
-  // 2. Fetch Live Weather Data from Open-Meteo API
   async function fetchNagpurWeather() {
     const nagpurLat = 21.1458;
     const nagpurLon = 79.0882;
@@ -81,7 +75,6 @@
       const data = await response.json();
       const current = data.current;
 
-      // Update Card Values
       const tempElem = document.getElementById('vbd-temp');
       const humElem = document.getElementById('vbd-humidity');
       const rainElem = document.getElementById('vbd-rainfall');
@@ -90,7 +83,6 @@
       if (humElem) humElem.textContent = `${current.relative_humidity_2m} %`;
       if (rainElem) rainElem.textContent = `${current.precipitation} mm`;
 
-      // Update Timestamp
       const now = new Date();
       const timeStr = now.toLocaleTimeString('en-US', {
         hour: '2-digit',
@@ -102,7 +94,6 @@
       const timeElem = document.getElementById('vbd-time');
       if (timeElem) timeElem.textContent = `Live • Updated ${timeStr}`;
 
-      // Epidemiological Risk Logic
       const riskBadge = document.getElementById('vbd-risk');
       if (riskBadge) {
         if (current.relative_humidity_2m >= 60 && current.temperature_2m >= 22 && current.temperature_2m <= 32) {
@@ -120,7 +111,6 @@
     }
   }
 
-  // 3. Execution Setup
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       attachToDashboard();
@@ -131,6 +121,5 @@
     fetchNagpurWeather();
   }
 
-  // Auto-refresh every 5 minutes (300,000 ms)
   setInterval(fetchNagpurWeather, 300000);
 })();

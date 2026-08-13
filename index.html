@@ -51,13 +51,15 @@
 
     </header>
 
-    <!-- Top Wrapper (Weather Grid at Order 1, Slicers & Filter Bar at Order 2) -->
+    <!-- Top Wrapper: Weather KPI Section FIRST, Filter Bar SECOND -->
     <div class="dashboard-top-wrapper">
       
-      <!-- Weather KPI Grid slot (populated by weatherManager.js at order: 1) -->
-      <div id="weather-slot"></div>
+      <!-- 1. Live Weather KPI Section (FIRST - Above Filter Bar) -->
+      <section class="weather-kpi-grid vbd-weather-grid" id="vbd-weather-container">
+        <!-- Injected dynamically by weatherManager.js -->
+      </section>
 
-      <!-- Slicers & Dynamic Filter Toolbar (order: 2) -->
+      <!-- 2. Slicers & Dynamic Filter Toolbar (SECOND - Below Weather) -->
       <section class="filter-bar-container filter-bar">
         
         <!-- 1. Search Slicer (Patient's Name, Hospital, Address ONLY) -->
