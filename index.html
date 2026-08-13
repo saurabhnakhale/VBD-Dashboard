@@ -9,7 +9,7 @@
   <!-- External CDNs -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="css/styles.css?v=20260813_02">
+  <link rel="stylesheet" href="css/styles.css?v=20260813_03">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -317,7 +317,7 @@
         </div>
       </section>
 
-      <!-- Section 3: Visualizations Grid (Row 2: Zone/Prabhag & Top High Risk Areas Disease Breakdown) -->
+      <!-- Section 3: Visualizations Grid (Row 2: Zone/Prabhag & Hotspot Map — Zone × Prabhag Case Density) -->
       <section class="dashboard-grid-2">
         <!-- Chart 4: Dynamic Zone & Prabhag Case Distribution (With Control Header & Drill-Down) -->
         <div class="chart-card">
@@ -365,19 +365,19 @@
           </div>
         </div>
 
-        <!-- Chart 5: Top High-Risk Areas Disease Breakdown -->
+        <!-- Chart 5: Hotspot Map — Zone × Prabhag Case Density -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
-              <i class="fa-solid fa-shield-virus card-title-icon"></i>
+              <i class="fa-solid fa-fire-flame-curved card-title-icon"></i>
               <div>
-                <h3 class="card-title">5. Top High-Risk Areas Disease Breakdown</h3>
-                <p class="card-subtitle">Horizontal stacked disease breakdown across top high-risk localities &amp; Sheet 2 hotspots</p>
+                <h3 class="card-title">Hotspot Map — Zone × Prabhag Case Density</h3>
+                <p class="card-subtitle">Darker cells indicate higher case concentration. Density mapped administratively by Zone and Prabhag.</p>
               </div>
             </div>
           </div>
-          <div class="chart-container">
-            <canvas id="chart-highrisk"></canvas>
+          <div id="zone-prabhag-heatmap-container" style="overflow-x: auto; padding: 0.4rem; height: 100%; min-height: 380px; box-sizing: border-box;">
+            <!-- Rendered dynamically by js/chartManager.js -->
           </div>
         </div>
       </section>
@@ -482,13 +482,13 @@
   </div>
 
   <!-- Application Logic Scripts with Cache-Busting Versioning -->
-  <script src="js/weatherManager.js?v=20260813_02"></script>
-  <script src="js/dataLoader.js?v=20260813_02"></script>
-  <script src="js/kpiManager.js?v=20260813_02"></script>
-  <script src="js/chartManager.js?v=20260813_02"></script>
-  <script src="js/heatmapManager.js?v=20260813_02"></script>
-  <script src="js/wardsData.js?v=20260813_02"></script>
-  <script src="js/mapManager.js?v=20260813_02"></script>
-  <script src="js/app.js?v=20260813_02"></script>
+  <script src="js/weatherManager.js?v=20260813_03"></script>
+  <script src="js/dataLoader.js?v=20260813_03"></script>
+  <script src="js/kpiManager.js?v=20260813_03"></script>
+  <script src="js/chartManager.js?v=20260813_03"></script>
+  <script src="js/heatmapManager.js?v=20260813_03"></script>
+  <script src="js/wardsData.js?v=20260813_03"></script>
+  <script src="js/mapManager.js?v=20260813_03"></script>
+  <script src="js/app.js?v=20260813_03"></script>
 </body>
 </html>

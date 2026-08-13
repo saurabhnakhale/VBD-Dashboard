@@ -1,6 +1,5 @@
 /**
- * ChartManager.js - Manages all Chart.js visualizations for the dashboard.
- * Chart 5: Clean Y-axis locality names without Sheet 2 Hotspot / Emerging Cluster text suffixes.
+ * ChartManager.js - Manages Chart.js visualizations & Zone x Prabhag Case Density Hotspot Matrix.
  */
 
 const ChartManager = {
@@ -679,171 +678,126 @@ const ChartManager = {
   },
 
   // =========================================================================
-  // 5. TOP HIGH-RISK LOCALITIES DISEASE BREAKDOWN (HORIZONTAL STACKED BAR CHART)
+  // 5. HOTSPOT MAP — ZONE × PRABHAG CASE DENSITY (MATRIX HEATMAP)
   // =========================================================================
   renderHighRiskCorrelation(patients) {
-    this.destroyChart('chart-highrisk');
-    const canvas = document.getElementById('chart-highrisk');
-    if (!canvas) return;
+    const container = document.getElementById('zone-prabhag-heatmap-container');
+    if (!container) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    // 1. Collect all unique Prabhag numbers from patient linelist
+    const prabhagSet = new Set();
+    patients.forEach(p => {
+      if (p.prabhag) {
+        const pNum = parseInt(p.prabhag, 10);
+        if (!isNaN(pNum)) prabhagSet.add(pNum);
+      }
+    });
 
-    const locMap = {};
-    const totalMunicipalCases = patients.length || 1;
+    let sortedPrabhags = Array.from(prabhagSet).sort((a, b) => a - b);
+    if (sortedPrabhags.length === 0) {
+      // Default prabhags list matching Nagpur administrative structure
+      sortedPrabhags = [0, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 23, 25, 26, 31, 33, 34, 35, 36, 37, 38];
+    }
+
+    // 2. Initialize 2D Matrix (Zones 1-10 x Prabhags) & Zone Totals
+    const matrix = {};
+    const zoneTotals = {};
+    for (let z = 1; z <= 10; z++) {
+      matrix[z] = {};
+      zoneTotals[z] = 0;
+      sortedPrabhags.forEach(p => matrix[z][p] = 0);
+    }
 
     patients.forEach(p => {
-      let loc = p.address ? String(p.address).trim() : '';
-      if (!loc || loc.length < 3) {
-        loc = p.prabhag ? `Prabhag ${p.prabhag}` : `Zone ${p.zoneNum || 1}`;
+      const z = p.zoneNum || 10;
+      const prab = p.prabhag ? parseInt(p.prabhag, 10) : null;
+      if (z >= 1 && z <= 10 && prab !== null && matrix[z][prab] !== undefined) {
+        matrix[z][prab]++;
+        zoneTotals[z]++;
       }
-
-      loc = loc.split(',')[0].split('-')[0].trim();
-      if (!loc || loc.length < 3) loc = `Zone ${p.zoneNum || 1}`;
-
-      if (!locMap[loc]) {
-        locMap[loc] = {
-          Dengue: 0,
-          Chikungunya: 0,
-          Malaria: 0,
-          ScrubTyphus: 0,
-          Total: 0,
-          isSheet2Match: false
-        };
-      }
-
-      if (p.isHighRiskMatch) {
-        locMap[loc].isSheet2Match = true;
-      }
-
-      const dStr = (p.disease || '').toLowerCase();
-      if (dStr.includes('chikungunya') || dStr.includes('chikun')) {
-        locMap[loc]['Chikungunya']++;
-      } else if (dStr.includes('malaria')) {
-        locMap[loc]['Malaria']++;
-      } else if (dStr.includes('scrub') || dStr.includes('typhus')) {
-        locMap[loc]['ScrubTyphus']++;
-      } else {
-        locMap[loc]['Dengue']++;
-      }
-
-      locMap[loc].Total++;
     });
 
-    // Top 10 High-Risk Localities sorted by total case volume
-    const top10 = Object.entries(locMap)
-      .sort((a, b) => b[1].Total - a[1].Total)
-      .slice(0, 10);
+    let grandTotal = 0;
+    Object.values(zoneTotals).forEach(t => grandTotal += t);
 
-    // Clean locality names without text suffixes on Y-axis
-    const labels = top10.map(([loc, data]) => loc);
+    // 3. Build Heatmap Matrix Table HTML
+    let tableHtml = `
+      <div style="overflow-x: auto; max-width: 100%; max-height: 350px; overflow-y: auto;">
+        <table style="width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 0.75rem; text-align: center; color: #f8fafc;">
+          <thead>
+            <tr style="position: sticky; top: 0; z-index: 4; background: #0b1120;">
+              <th style="padding: 7px 10px; color: #94a3b8; text-align: left; position: sticky; left: 0; background: #0b1120; z-index: 5; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); min-width: 90px;">Zone \\ Prabhag</th>
+    `;
 
-    const dengueData = top10.map(s => s[1].Dengue);
-    const chikData = top10.map(s => s[1].Chikungunya);
-    const malariaData = top10.map(s => s[1].Malaria);
-    const scrubData = top10.map(s => s[1].ScrubTyphus);
+    sortedPrabhags.forEach(p => {
+      tableHtml += `<th style="padding: 7px 4px; color: #94a3b8; font-weight: 700; min-width: 30px; border-bottom: 1px solid rgba(255,255,255,0.1);">P${p}</th>`;
+    });
 
-    const inlineHorizontalLabelsPlugin = {
-      id: 'horizontalBarLabels',
-      afterDatasetsDraw(chart) {
-        const { ctx } = chart;
-        chart.data.datasets.forEach((dataset, datasetIndex) => {
-          const meta = chart.getDatasetMeta(datasetIndex);
-          if (meta.hidden) return;
+    tableHtml += `
+              <th style="padding: 7px 10px; color: #f8fafc; background: #1e1b4b; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); min-width: 75px;">Zone Total</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
 
-          meta.data.forEach((element, index) => {
-            const val = dataset.data[index];
-            if (val && val > 0) {
-              const barX = element.x;
-              const barBase = element.base;
-              const segmentWidth = Math.abs(barX - barBase);
+    for (let z = 1; z <= 10; z++) {
+      tableHtml += `<tr>`;
+      tableHtml += `<td style="padding: 6px 10px; text-align: left; font-weight: 700; color: #f8fafc; position: sticky; left: 0; background: #0b1120; z-index: 3; border-right: 1px solid rgba(255,255,255,0.05); white-space: nowrap;">Zone ${z}</td>`;
 
-              if (segmentWidth > 12) {
-                ctx.save();
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(val, barBase + (barX - barBase) / 2, element.y);
-                ctx.restore();
-              }
-            }
-          });
-        });
-      }
-    };
+      sortedPrabhags.forEach(p => {
+        const val = matrix[z][p];
+        if (val > 0) {
+          let bg = 'rgba(254, 205, 211, 0.35)';
+          let color = '#fecdd3';
 
-    this.charts['chart-highrisk'] = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          { label: 'Dengue', data: dengueData, backgroundColor: '#a855f7', borderRadius: 4 },
-          { label: 'Chikungunya', data: chikData, backgroundColor: '#ec4899', borderRadius: 4 },
-          { label: 'Malaria', data: malariaData, backgroundColor: '#06b6d4', borderRadius: 4 },
-          { label: 'Scrub Typhus', data: scrubData, backgroundColor: '#ef4444', borderRadius: 4 }
-        ]
-      },
-      plugins: [inlineHorizontalLabelsPlugin],
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            stacked: true,
-            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-            ticks: { color: '#94a3b8' },
-            title: { display: true, text: 'Number of Confirmed Cases', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
-          },
-          y: {
-            stacked: true,
-            grid: { display: false },
-            ticks: { color: '#f8fafc', font: { size: 11, weight: '600' } }
+          if (val >= 6) {
+            bg = '#be123c'; // Dark crimson red
+            color = '#ffffff';
+          } else if (val >= 4) {
+            bg = '#e11d48'; // Vivid rose
+            color = '#ffffff';
+          } else if (val >= 3) {
+            bg = '#f43f5e'; // Rose
+            color = '#ffffff';
+          } else if (val >= 2) {
+            bg = '#fda4af'; // Salmon
+            color = '#881337';
           }
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: { color: '#f8fafc', font: { size: 12, weight: 'bold' } }
-          },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-            callbacks: {
-              title: (items) => {
-                const labelStr = items[0].label;
-                return `Locality: ${labelStr}`;
-              },
-              label: (item) => {
-                const locIndex = item.dataIndex;
-                const locData = top10[locIndex][1];
-                const totalLocCases = locData.Total || 1;
-                const val = item.raw;
-                const pctLoc = ((val / totalLocCases) * 100).toFixed(1);
-                return `${item.dataset.label}: ${val} cases (${pctLoc}% share of locality burden)`;
-              },
-              afterBody: (items) => {
-                const locIndex = items[0].dataIndex;
-                const locData = top10[locIndex][1];
-                const totalLocCases = locData.Total;
-                const pctCity = ((totalLocCases / totalMunicipalCases) * 100).toFixed(1);
-                const statusStr = locData.isSheet2Match ? 'Designated Sheet 2 Hotspot' : 'Emerging Outbreak Cluster';
 
-                return [
-                  '',
-                  `📍 Status: ${statusStr}`,
-                  `📊 Total Locality Burden: ${totalLocCases} cases (${pctCity}% of city total)`,
-                  ` • Dengue: ${locData.Dengue}`,
-                  ` • Chikungunya: ${locData.Chikungunya}`,
-                  ` • Malaria: ${locData.Malaria}`,
-                  ` • Scrub Typhus: ${locData.ScrubTyphus}`
-                ];
-              }
-            }
-          }
+          tableHtml += `<td title="Zone ${z}, Prabhag P${p}: ${val} cases" style="padding: 5px 2px; background: ${bg}; color: ${color}; font-weight: 800; border-radius: 3px; cursor: pointer; transition: transform 0.15s ease;">${val}</td>`;
+        } else {
+          tableHtml += `<td style="padding: 5px 2px; color: rgba(255,255,255,0.12); font-size: 0.65rem;">·</td>`;
         }
-      }
-    });
+      });
+
+      tableHtml += `<td style="padding: 6px 10px; font-weight: 800; color: #a855f7; background: rgba(30, 27, 75, 0.75); border-radius: 3px;">${zoneTotals[z]}</td>`;
+      tableHtml += `</tr>`;
+    }
+
+    tableHtml += `
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Heatmap Footer Legend -->
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding: 4px 6px; font-size: 0.75rem; color: #94a3b8; background: rgba(15, 23, 42, 0.5); border-radius: 6px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>Low</span>
+          <div style="display: flex; gap: 3px; align-items: center;">
+            <div style="width: 14px; height: 14px; background: rgba(254, 205, 211, 0.35); border-radius: 2px;" title="1 case"></div>
+            <div style="width: 14px; height: 14px; background: #fda4af; border-radius: 2px;" title="2 cases"></div>
+            <div style="width: 14px; height: 14px; background: #f43f5e; border-radius: 2px;" title="3 cases"></div>
+            <div style="width: 14px; height: 14px; background: #e11d48; border-radius: 2px;" title="4-5 cases"></div>
+            <div style="width: 14px; height: 14px; background: #be123c; border-radius: 2px;" title="6+ cases"></div>
+          </div>
+          <span>High</span>
+        </div>
+        <div style="font-weight: 700; color: #f8fafc;">
+          Filtered Total: <span style="color: #a855f7;">${grandTotal} cases</span>
+        </div>
+      </div>
+    `;
+
+    container.innerHTML = tableHtml;
   }
 };
