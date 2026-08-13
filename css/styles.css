@@ -177,7 +177,7 @@ body {
   border-bottom: 1px solid var(--border-card);
   padding: 1.25rem 2rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 1rem;
   align-items: end;
 }
@@ -280,23 +280,25 @@ body {
   flex: 1;
 }
 
-/* 8 KPI Cards Grid */
+/* 8 KPI Cards Single Row Grid (Medium Size) */
 .kpi-grid-8 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1.15rem;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 0.65rem;
+  width: 100%;
 }
 
 .kpi-card {
   background: var(--bg-card);
   border: 1px solid var(--border-card);
-  border-radius: var(--radius-card);
-  padding: 1.25rem 1.35rem;
+  border-radius: 10px;
+  padding: 0.9rem 0.75rem;
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 135px;
+  min-height: 110px;
+  overflow: hidden;
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
@@ -310,10 +312,10 @@ body {
   position: absolute;
   top: 0;
   left: 0;
-  width: 4px;
+  width: 3px;
   height: 100%;
-  border-top-left-radius: var(--radius-card);
-  border-bottom-left-radius: var(--radius-card);
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
 }
 
 .kpi-card.kpi-info::before { background: var(--blue-accent); }
@@ -328,25 +330,29 @@ body {
 .kpi-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 0.25rem;
 }
 
 .kpi-title {
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   font-weight: 800;
   text-transform: uppercase;
   color: var(--text-sub);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  word-break: break-word;
 }
 
 .kpi-icon-wrapper {
-  width: 30px;
-  height: 30px;
-  border-radius: 8px;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
+  font-size: 0.8rem;
   background: rgba(255, 255, 255, 0.05);
 }
 
@@ -360,20 +366,24 @@ body {
 .kpi-success .kpi-icon-wrapper { color: var(--green-accent); }
 
 .kpi-value {
-  font-size: 1.9rem;
+  font-size: 1.4rem;
   font-weight: 800;
   letter-spacing: -0.02em;
   color: #ffffff;
-  margin: 0.3rem 0;
+  margin: 0.25rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kpi-subtext {
-  font-size: 0.74rem;
+  font-size: 0.66rem;
   color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
+  display: block;
   font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Chart Cards */
@@ -578,6 +588,18 @@ body {
   text-align: center;
   font-size: 0.8rem;
   color: var(--text-sub);
+}
+
+@media (max-width: 1400px) {
+  .kpi-grid-8 {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 0.4rem;
+  }
+  .kpi-card {
+    min-width: 160px;
+    flex: 0 0 auto;
+  }
 }
 
 @media (max-width: 1024px) {

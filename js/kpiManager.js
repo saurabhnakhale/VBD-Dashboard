@@ -15,7 +15,6 @@ const KPIManager = {
     if (!filteredPatients) return;
 
     const total = filteredPatients.length;
-    const overallTotal = totalPatientsCount || total;
 
     // Helper for case counts
     const getCountByDisease = (keyword) => {
@@ -28,7 +27,7 @@ const KPIManager = {
     const dengueElem = document.getElementById('kpi-dengue-cases');
     const dengueSub = document.getElementById('kpi-dengue-subtext');
     if (dengueElem) dengueElem.textContent = dengueCount.toLocaleString();
-    if (dengueSub) dengueSub.textContent = `${denguePct}% of filtered notifications`;
+    if (dengueSub) dengueSub.textContent = `${denguePct}% of notifications`;
 
     // 2. Chikungunya Cases
     const chikCount = getCountByDisease('chikungunya');
@@ -36,7 +35,7 @@ const KPIManager = {
     const chikElem = document.getElementById('kpi-chikungunya-cases');
     const chikSub = document.getElementById('kpi-chikungunya-subtext');
     if (chikElem) chikElem.textContent = chikCount.toLocaleString();
-    if (chikSub) chikSub.textContent = `${chikPct}% of filtered notifications`;
+    if (chikSub) chikSub.textContent = `${chikPct}% of notifications`;
 
     // 3. Malaria Cases
     const malariaCount = getCountByDisease('malaria');
@@ -44,7 +43,7 @@ const KPIManager = {
     const malariaElem = document.getElementById('kpi-malaria-cases');
     const malariaSub = document.getElementById('kpi-malaria-subtext');
     if (malariaElem) malariaElem.textContent = malariaCount.toLocaleString();
-    if (malariaSub) malariaSub.textContent = `${malariaPct}% of filtered notifications`;
+    if (malariaSub) malariaSub.textContent = `${malariaPct}% of notifications`;
 
     // 4. Japanese Encephalitis (JE)
     const jeCount = getCountByDisease('encephalitis') + getCountByDisease('je');
@@ -52,7 +51,7 @@ const KPIManager = {
     const jeElem = document.getElementById('kpi-je-cases');
     const jeSub = document.getElementById('kpi-je-subtext');
     if (jeElem) jeElem.textContent = jeCount.toLocaleString();
-    if (jeSub) jeSub.textContent = `${jePct}% of filtered notifications`;
+    if (jeSub) jeSub.textContent = `${jePct}% of notifications`;
 
     // 5. Scrub Typhus
     const typhusCount = getCountByDisease('typhus') + getCountByDisease('scrub');
@@ -60,7 +59,7 @@ const KPIManager = {
     const typhusElem = document.getElementById('kpi-scrub-typhus-cases');
     const typhusSub = document.getElementById('kpi-scrub-typhus-subtext');
     if (typhusElem) typhusElem.textContent = typhusCount.toLocaleString();
-    if (typhusSub) typhusSub.textContent = `${typhusPct}% of filtered notifications`;
+    if (typhusSub) typhusSub.textContent = `${typhusPct}% of notifications`;
 
     // 6. Top Hotspot Zone
     const zoneCounts = {};
@@ -81,14 +80,16 @@ const KPIManager = {
     const zonePct = total > 0 ? ((topZoneCount / total) * 100).toFixed(1) : '0.0';
     const zoneElem = document.getElementById('kpi-hotspot-zone');
     const zoneSub = document.getElementById('kpi-hotspot-subtext');
-    if (zoneElem) zoneElem.textContent = topZone;
-    if (zoneSub) zoneSub.textContent = `${topZoneCount} cases (${zonePct}% of total)`;
+    if (zoneElem) {
+      zoneElem.textContent = topZone;
+      zoneElem.title = topZone;
+    }
+    if (zoneSub) zoneSub.textContent = `${topZoneCount} cases (${zonePct}%)`;
 
     // 7. 7-Day / 30-Day Moving Trend
     const trendElem = document.getElementById('kpi-trend-rate');
     const trendSub = document.getElementById('kpi-trend-subtext');
     
-    // Sort patients by date to compute velocity
     const validDates = filteredPatients
       .map(p => p.dateObj)
       .filter(d => d && !isNaN(d.getTime()))
@@ -103,17 +104,16 @@ const KPIManager = {
       const recent30Count = validDates.filter(d => d >= thirtyDaysAgo).length;
 
       if (trendElem) trendElem.textContent = `+${recent7Count} (7d) / +${recent30Count} (30d)`;
-      if (trendSub) trendSub.textContent = `Recent notification velocity`;
+      if (trendSub) trendSub.textContent = `Moving notification velocity`;
     } else {
       if (trendElem) trendElem.textContent = `Stable`;
       if (trendSub) trendSub.textContent = `0 moving delta`;
     }
 
     // 8. Case Fatality Rate (CFR)
-    // Zero mortality recorded in linelist datasets
     const cfrElem = document.getElementById('kpi-cfr-rate');
     const cfrSub = document.getElementById('kpi-cfr-subtext');
     if (cfrElem) cfrElem.textContent = '0.00%';
-    if (cfrSub) cfrSub.textContent = '0 fatalities recorded (100% recovery)';
+    if (cfrSub) cfrSub.textContent = '0 fatalities recorded';
   }
 };
