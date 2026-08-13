@@ -255,24 +255,24 @@
 
       </section>
 
-      <!-- Section 2: Visualizations Grid (Row 1) -->
+      <!-- Section 2: Upgraded Visualizations Grid (Row 1) -->
       <section class="dashboard-grid-2">
-        <!-- Chart 1: Epidemic Curve & 5-Disease Trendlines -->
+        <!-- Upgraded Chart 1: Multi-Series Smooth Line Epidemic Curve -->
         <div class="chart-card">
           <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center;">
             <div class="card-title-group">
               <i class="fa-solid fa-chart-line card-title-icon"></i>
               <div>
-                <h3 class="card-title">1. Epidemic Curve &amp; 5-Disease Trendlines</h3>
-                <p class="card-subtitle">Surveillance trend across Dengue, Chikungunya, Malaria, JE &amp; Scrub Typhus</p>
+                <h3 class="card-title">1. Epidemic Curve &amp; Temporal Surge</h3>
+                <p class="card-subtitle">Multi-series smooth line trend with area fill (Dengue, Chikungunya, Malaria)</p>
               </div>
             </div>
             
             <!-- Granularity Selectors (Daily, Weekly, Monthly, Yearly) -->
             <div class="trend-granularity-toggle" id="epicurve-granularity-toggle">
-              <button class="btn-granularity active" data-granularity="daily">Daily</button>
+              <button class="btn-granularity" data-granularity="daily">Daily</button>
               <button class="btn-granularity" data-granularity="weekly">Weekly</button>
-              <button class="btn-granularity" data-granularity="monthly">Monthly</button>
+              <button class="btn-granularity active" data-granularity="monthly">Monthly</button>
               <button class="btn-granularity" data-granularity="yearly">Yearly</button>
             </div>
           </div>
@@ -281,14 +281,14 @@
           </div>
         </div>
 
-        <!-- Chart 2: Demographic Pyramid -->
+        <!-- Upgraded Chart 2: Diverging Demographic Risk Pyramid -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-users-rays card-title-icon"></i>
               <div>
                 <h3 class="card-title">2. Demographic Risk Pyramid</h3>
-                <p class="card-subtitle">Age bracket distribution stratified by Sex (Male vs Female)</p>
+                <p class="card-subtitle">WHO/CDC style back-to-back diverging age-gender population pyramid</p>
               </div>
             </div>
           </div>
@@ -298,16 +298,16 @@
         </div>
       </section>
 
-      <!-- Section 3: Visualizations Grid (Row 2) -->
+      <!-- Section 3: Upgraded Visualizations Grid (Row 2) -->
       <section class="dashboard-grid-2">
-        <!-- Chart 3: Facility Burden -->
+        <!-- Upgraded Chart 3: Facility Burden Stacked Breakdown -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-hospital card-title-icon"></i>
               <div>
                 <h3 class="card-title">3. Facility-Level Case Burden</h3>
-                <p class="card-subtitle">Top reporting hospitals and Urban Health Centers</p>
+                <p class="card-subtitle">Stacked horizontal breakdown by reporting health facility and disease type</p>
               </div>
             </div>
           </div>
@@ -316,14 +316,14 @@
           </div>
         </div>
 
-        <!-- Chart 4: Zone Outbreak Burden -->
+        <!-- Upgraded Chart 4: Zone Outbreak Burden Heatmap Matrix -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-chart-column card-title-icon"></i>
               <div>
-                <h3 class="card-title">4. Zone Outbreak Burden (Zones 1-10)</h3>
-                <p class="card-subtitle">Comparative case distribution across NMC Municipal Zones</p>
+                <h3 class="card-title">4. Zone Outbreak Burden Matrix</h3>
+                <p class="card-subtitle">Spatial-temporal outbreak intensity matrix across Zones 1–10 over months</p>
               </div>
             </div>
           </div>
