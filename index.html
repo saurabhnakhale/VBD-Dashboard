@@ -255,15 +255,43 @@
 
       </section>
 
-      <!-- Section 2: Visualizations Grid (Row 1: Demographic Risk & Facility Burden) -->
+      <!-- Section 2: Visualizations Grid (Row 1: Case Trend Over Time & Demographic Risk) -->
       <section class="dashboard-grid-2">
-        <!-- Chart 1: Diverging Demographic Risk Pyramid -->
+        
+        <!-- Chart 1: Case Trend Over Time (Multi-Series Trendline) -->
+        <div class="chart-card">
+          
+          <!-- Top Granularity Pill Buttons (By Day, By Month, By Year) -->
+          <div class="case-trend-pill-container" style="margin-bottom: 0.75rem;">
+            <div class="pill-toggle-group" id="epicurve-granularity-toggle">
+              <button class="pill-btn active" data-granularity="daily">By Day</button>
+              <button class="pill-btn" data-granularity="monthly">By Month</button>
+              <button class="pill-btn" data-granularity="yearly">By Year</button>
+            </div>
+          </div>
+
+          <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center;">
+            <div class="card-title-group">
+              <i class="fa-solid fa-chart-line card-title-icon"></i>
+              <div>
+                <h3 class="card-title">Case Trend Over Time</h3>
+                <p class="card-subtitle">Notified cases across the selected period, by disease</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-container">
+            <canvas id="chart-epicurve"></canvas>
+          </div>
+        </div>
+
+        <!-- Chart 2: Diverging Demographic Risk Pyramid -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-users-rays card-title-icon"></i>
               <div>
-                <h3 class="card-title">1. Demographic Risk Pyramid</h3>
+                <h3 class="card-title">2. Demographic Risk Pyramid</h3>
                 <p class="card-subtitle">WHO/CDC style back-to-back diverging age-gender population pyramid</p>
               </div>
             </div>
@@ -272,14 +300,17 @@
             <canvas id="chart-demographics"></canvas>
           </div>
         </div>
+      </section>
 
-        <!-- Chart 2: Facility Burden Stacked Breakdown -->
+      <!-- Section 3: Visualizations Grid (Row 2: Facility Burden & Zone/Prabhag Distribution) -->
+      <section class="dashboard-grid-2">
+        <!-- Chart 3: Facility Burden Stacked Breakdown -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-hospital card-title-icon"></i>
               <div>
-                <h3 class="card-title">2. Facility-Level Case Burden</h3>
+                <h3 class="card-title">3. Facility-Level Case Burden</h3>
                 <p class="card-subtitle">Stacked horizontal breakdown by reporting health facility and disease type</p>
               </div>
             </div>
@@ -288,17 +319,14 @@
             <canvas id="chart-facilities"></canvas>
           </div>
         </div>
-      </section>
 
-      <!-- Section 3: Visualizations Grid (Row 2: Zone/Prabhag & High Risk Area Match) -->
-      <section class="dashboard-grid-2">
-        <!-- Chart 3: Zone & Prabhag Case Distribution -->
+        <!-- Chart 4: Zone & Prabhag Case Distribution -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-map-location-dot card-title-icon"></i>
               <div>
-                <h3 class="card-title">3. Zone &amp; Prabhag Case Distribution</h3>
+                <h3 class="card-title">4. Zone &amp; Prabhag Case Distribution</h3>
                 <p class="card-subtitle">Stacked case distribution across NMC Municipal Zones 1–10 and Prabhag clusters</p>
               </div>
             </div>
@@ -307,14 +335,17 @@
             <canvas id="chart-zones"></canvas>
           </div>
         </div>
+      </section>
 
-        <!-- Chart 4: High Risk Correlation -->
+      <!-- Section 4: Visualizations Grid (Row 3 - High Risk Match & Vulnerability) -->
+      <section class="dashboard-grid-2">
+        <!-- Chart 5: High Risk Correlation -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-shield-virus card-title-icon"></i>
               <div>
-                <h3 class="card-title">4. Sheet 2 High-Risk Area Match Ratio</h3>
+                <h3 class="card-title">5. Sheet 2 High-Risk Area Match Ratio</h3>
                 <p class="card-subtitle">Correlation of patient addresses against designated high-risk zones</p>
               </div>
             </div>
@@ -323,17 +354,14 @@
             <canvas id="chart-highrisk"></canvas>
           </div>
         </div>
-      </section>
 
-      <!-- Section 4: Visualizations Grid (Row 3: Age Susceptibility Radar) -->
-      <section class="dashboard-grid-2">
-        <!-- Chart 5: Age Vulnerability Radar -->
+        <!-- Chart 6: Age Vulnerability Radar -->
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-bullseye card-title-icon"></i>
               <div>
-                <h3 class="card-title">5. Age Group Susceptibility Radar</h3>
+                <h3 class="card-title">6. Age Group Susceptibility Radar</h3>
                 <p class="card-subtitle">Disease vulnerability profile across patient age tiers</p>
               </div>
             </div>

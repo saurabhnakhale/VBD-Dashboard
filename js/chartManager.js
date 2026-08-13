@@ -1,11 +1,13 @@
 /**
- * ChartManager.js - Manages 5 advanced Chart.js visualizations for the dashboard.
- * (Case Trend Over Time chart removed as requested).
+ * ChartManager.js - Manages 6 advanced Chart.js visualizations for the dashboard.
+ * Chart 1: Case Trend Over Time Trendlines (Dengue, Chikungunya, Malaria) with By Day / By Month / By Year pill selectors.
+ * Dengue (Positive) is removed as requested.
  */
 
 const ChartManager = {
   charts: {},
   currentPatients: [],
+  currentGranularity: 'daily',
 
   init() {
     Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
@@ -20,11 +22,13 @@ const ChartManager = {
   renderAll(patients) {
     this.init();
     this.currentPatients = patients;
+    this.renderEpidemicCurve(patients, this.currentGranularity);
     this.renderDemographicPyramid(patients);
     this.renderFacilityBurden(patients);
     this.renderZonePrabhagDistribution(patients);
     this.renderHighRiskCorrelation(patients);
     this.renderAgeDiseaseVulnerability(patients);
+    this.setupGranularityListeners();
   },
 
   destroyChart(id) {
@@ -34,16 +38,208 @@ const ChartManager = {
     }
   },
 
+  setupGranularityListeners() {
+    const container = document.getElementById('epicurve-granularity-toggle');
+    if (!container || container.dataset.initialized) return;
+
+    container.dataset.initialized = 'true';
+    container.addEventListener('click', (e) => {
+      const btn = e.target.closest('.pill-btn') || e.target.closest('.btn-granularity');
+      if (!btn) return;
+
+      container.querySelectorAll('.pill-btn, .btn-granularity').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const gran = btn.dataset.granularity || 'daily';
+      this.currentGranularity = gran;
+      this.renderEpidemicCurve(this.currentPatients, gran);
+    });
+  },
+
   getDiseaseCategory(disStr) {
     const d = (disStr || '').toLowerCase();
+    if (d.includes('positive')) return 'EXCLUDE'; // Explicitly remove Dengue (Positive)
     if (d.includes('chikungunya') || d.includes('chikun')) return 'Chikungunya';
     if (d.includes('malaria')) return 'Malaria';
-    if (d.includes('japanese') || d.includes('encephalitis') || d.includes('je')) return 'JE';
-    if (d.includes('scrub') || d.includes('typhus')) return 'Scrub Typhus';
     return 'Dengue';
   },
 
-  // 1. Demographic Risk Pyramid (Back-to-Back Population Pyramid)
+  // =========================================================================
+  // 1. Case Trend Over Time (Multi-Series Trendline for Dengue, Chikungunya, Malaria)
+  // =========================================================================
+  renderEpidemicCurve(patients, granularity = 'daily') {
+    this.destroyChart('chart-epicurve');
+    const ctx = document.getElementById('chart-epicurve')?.getContext('2d');
+    if (!ctx) return;
+
+    let labels = [];
+    let xAxisTitle = '';
+    const timeMap = {};
+
+    if (granularity === 'daily') {
+      xAxisTitle = 'Day of month';
+      labels = Array.from({ length: 31 }, (_, i) => `${i + 1}`);
+      labels.forEach(l => {
+        timeMap[l] = { Dengue: 0, Chikungunya: 0, Malaria: 0 };
+      });
+
+      patients.forEach(p => {
+        let dayNum = null;
+        if (p.parsedDate) {
+          const d = new Date(p.parsedDate);
+          if (!isNaN(d.getTime())) dayNum = String(d.getDate());
+        }
+        if (!dayNum) dayNum = '1';
+
+        const cat = this.getDiseaseCategory(p.disease);
+        if (cat !== 'EXCLUDE' && timeMap[dayNum] && timeMap[dayNum][cat] !== undefined) {
+          timeMap[dayNum][cat]++;
+        }
+      });
+    } else if (granularity === 'monthly') {
+      xAxisTitle = 'Month of year';
+      labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      labels.forEach(l => {
+        timeMap[l] = { Dengue: 0, Chikungunya: 0, Malaria: 0 };
+      });
+
+      patients.forEach(p => {
+        let mStr = p.month || 'Jan';
+        const mIdx = labels.findIndex(m => mStr.toLowerCase().startsWith(m.toLowerCase()));
+        const mKey = mIdx !== -1 ? labels[mIdx] : 'Jan';
+        const cat = this.getDiseaseCategory(p.disease);
+        if (cat !== 'EXCLUDE' && timeMap[mKey] && timeMap[mKey][cat] !== undefined) {
+          timeMap[mKey][cat]++;
+        }
+      });
+    } else { // yearly
+      xAxisTitle = 'Year';
+      const yearSet = new Set();
+      patients.forEach(p => {
+        const y = parseInt(p.year) || 2024;
+        yearSet.add(`${y}`);
+      });
+      if (yearSet.size === 0) {
+        yearSet.add('2024'); yearSet.add('2025'); yearSet.add('2026');
+      }
+      labels = Array.from(yearSet).sort();
+      labels.forEach(l => {
+        timeMap[l] = { Dengue: 0, Chikungunya: 0, Malaria: 0 };
+      });
+
+      patients.forEach(p => {
+        const yKey = `${parseInt(p.year) || 2024}`;
+        const cat = this.getDiseaseCategory(p.disease);
+        if (cat !== 'EXCLUDE' && timeMap[yKey] && timeMap[yKey][cat] !== undefined) {
+          timeMap[yKey][cat]++;
+        }
+      });
+    }
+
+    const dengueData = labels.map(l => timeMap[l]['Dengue']);
+    const chikData = labels.map(l => timeMap[l]['Chikungunya']);
+    const malariaData = labels.map(l => timeMap[l]['Malaria']);
+
+    this.charts['chart-epicurve'] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Dengue',
+            data: dengueData,
+            borderColor: '#c8372d',
+            backgroundColor: 'rgba(200, 55, 45, 0.15)',
+            borderWidth: 2.5,
+            tension: 0.35,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#c8372d'
+          },
+          {
+            label: 'Chikungunya',
+            data: chikData,
+            borderColor: '#e67e22',
+            backgroundColor: 'rgba(230, 126, 34, 0.15)',
+            borderWidth: 2.5,
+            tension: 0.35,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#e67e22'
+          },
+          {
+            label: 'Malaria',
+            data: malariaData,
+            borderColor: '#1e824c',
+            backgroundColor: 'rgba(30, 130, 76, 0.15)',
+            borderWidth: 2.5,
+            tension: 0.35,
+            fill: true,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#1e824c'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        scales: {
+          x: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            title: {
+              display: true,
+              text: xAxisTitle,
+              color: '#94a3b8',
+              font: { weight: '600', size: 11 }
+            }
+          },
+          y: {
+            grid: { color: 'rgba(255,255,255,0.05)' },
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            },
+            title: {
+              display: true,
+              text: 'Case Count',
+              color: '#94a3b8',
+              font: { weight: '600', size: 11 }
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: {
+              usePointStyle: true,
+              pointStyle: 'circle',
+              boxWidth: 8,
+              padding: 20,
+              font: { size: 12, weight: '600' }
+            }
+          },
+          tooltip: {
+            callbacks: {
+              footer: (items) => {
+                let sum = 0;
+                items.forEach(i => sum += i.raw);
+                return `Total Cases: ${sum}`;
+              }
+            }
+          }
+        }
+      }
+    });
+  },
+
+  // 2. Demographic Risk Pyramid
   renderDemographicPyramid(patients) {
     this.destroyChart('chart-demographics');
     const ctx = document.getElementById('chart-demographics')?.getContext('2d');
@@ -87,7 +283,7 @@ const ChartManager = {
     });
   },
 
-  // 2. Facility Burden
+  // 3. Facility Burden
   renderFacilityBurden(patients) {
     this.destroyChart('chart-facilities');
     const ctx = document.getElementById('chart-facilities')?.getContext('2d');
@@ -97,9 +293,11 @@ const ChartManager = {
     patients.forEach(p => {
       const hosp = p.hospital || 'Unspecified';
       const cat = this.getDiseaseCategory(p.disease);
-      if (!hospMap[hosp]) hospMap[hosp] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE: 0, 'Scrub Typhus': 0, Total: 0 };
-      hospMap[hosp][cat] = (hospMap[hosp][cat] || 0) + 1;
-      hospMap[hosp].Total++;
+      if (!hospMap[hosp]) hospMap[hosp] = { Dengue: 0, Chikungunya: 0, Malaria: 0, Total: 0 };
+      if (cat !== 'EXCLUDE' && hospMap[hosp][cat] !== undefined) {
+        hospMap[hosp][cat]++;
+        hospMap[hosp].Total++;
+      }
     });
 
     const sorted = Object.entries(hospMap).sort((a, b) => b[1].Total - a[1].Total).slice(0, 8);
@@ -107,17 +305,15 @@ const ChartManager = {
     const dengueData = sorted.map(s => s[1].Dengue);
     const chikData = sorted.map(s => s[1].Chikungunya);
     const malariaData = sorted.map(s => s[1].Malaria);
-    const jeData = sorted.map(s => s[1].JE);
 
     this.charts['chart-facilities'] = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [
-          { label: 'Dengue', data: dengueData, backgroundColor: '#8b5cf6', borderRadius: 4 },
-          { label: 'Chikungunya', data: chikData, backgroundColor: '#ec4899', borderRadius: 4 },
-          { label: 'Malaria', data: malariaData, backgroundColor: '#06b6d4', borderRadius: 4 },
-          { label: 'Japanese Encephalitis (JE)', data: jeData, backgroundColor: '#f59e0b', borderRadius: 4 }
+          { label: 'Dengue', data: dengueData, backgroundColor: '#c8372d', borderRadius: 4 },
+          { label: 'Chikungunya', data: chikData, backgroundColor: '#e67e22', borderRadius: 4 },
+          { label: 'Malaria', data: malariaData, backgroundColor: '#1e824c', borderRadius: 4 }
         ]
       },
       options: {
@@ -133,7 +329,7 @@ const ChartManager = {
     });
   },
 
-  // 3. Zone & Prabhag Case Distribution Stacked Bar Chart
+  // 4. Zone & Prabhag Case Distribution Stacked Bar Chart
   renderZonePrabhagDistribution(patients) {
     this.destroyChart('chart-zones');
     const ctx = document.getElementById('chart-zones')?.getContext('2d');
@@ -269,7 +465,7 @@ const ChartManager = {
     });
   },
 
-  // 4. High Risk Correlation
+  // 5. High Risk Correlation
   renderHighRiskCorrelation(patients) {
     this.destroyChart('chart-highrisk');
     const ctx = document.getElementById('chart-highrisk')?.getContext('2d');
@@ -301,7 +497,7 @@ const ChartManager = {
     });
   },
 
-  // 5. Age Group Susceptibility
+  // 6. Age Group Susceptibility
   renderAgeDiseaseVulnerability(patients) {
     this.destroyChart('chart-vulnerability');
     const ctx = document.getElementById('chart-vulnerability')?.getContext('2d');
