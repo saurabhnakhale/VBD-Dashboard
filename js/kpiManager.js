@@ -1,5 +1,5 @@
 /**
- * KPIManager.js - Calculates and renders the 8 core healthcare KPIs for the dashboard:
+ * KPIManager.js - Calculates and renders the 8 core healthcare KPIs for the dashboard in Small Compact format:
  * 1. Dengue Cases
  * 2. Chikungunya Cases
  * 3. Malaria Cases
@@ -27,7 +27,7 @@ const KPIManager = {
     const dengueElem = document.getElementById('kpi-dengue-cases');
     const dengueSub = document.getElementById('kpi-dengue-subtext');
     if (dengueElem) dengueElem.textContent = dengueCount.toLocaleString();
-    if (dengueSub) dengueSub.textContent = `${denguePct}% of notifications`;
+    if (dengueSub) dengueSub.textContent = `${denguePct}% notifications`;
 
     // 2. Chikungunya Cases
     const chikCount = getCountByDisease('chikungunya');
@@ -35,7 +35,7 @@ const KPIManager = {
     const chikElem = document.getElementById('kpi-chikungunya-cases');
     const chikSub = document.getElementById('kpi-chikungunya-subtext');
     if (chikElem) chikElem.textContent = chikCount.toLocaleString();
-    if (chikSub) chikSub.textContent = `${chikPct}% of notifications`;
+    if (chikSub) chikSub.textContent = `${chikPct}% notifications`;
 
     // 3. Malaria Cases
     const malariaCount = getCountByDisease('malaria');
@@ -43,7 +43,7 @@ const KPIManager = {
     const malariaElem = document.getElementById('kpi-malaria-cases');
     const malariaSub = document.getElementById('kpi-malaria-subtext');
     if (malariaElem) malariaElem.textContent = malariaCount.toLocaleString();
-    if (malariaSub) malariaSub.textContent = `${malariaPct}% of notifications`;
+    if (malariaSub) malariaSub.textContent = `${malariaPct}% notifications`;
 
     // 4. Japanese Encephalitis (JE)
     const jeCount = getCountByDisease('encephalitis') + getCountByDisease('je');
@@ -51,7 +51,7 @@ const KPIManager = {
     const jeElem = document.getElementById('kpi-je-cases');
     const jeSub = document.getElementById('kpi-je-subtext');
     if (jeElem) jeElem.textContent = jeCount.toLocaleString();
-    if (jeSub) jeSub.textContent = `${jePct}% of notifications`;
+    if (jeSub) jeSub.textContent = `${jePct}% notifications`;
 
     // 5. Scrub Typhus
     const typhusCount = getCountByDisease('typhus') + getCountByDisease('scrub');
@@ -59,12 +59,16 @@ const KPIManager = {
     const typhusElem = document.getElementById('kpi-scrub-typhus-cases');
     const typhusSub = document.getElementById('kpi-scrub-typhus-subtext');
     if (typhusElem) typhusElem.textContent = typhusCount.toLocaleString();
-    if (typhusSub) typhusSub.textContent = `${typhusPct}% of notifications`;
+    if (typhusSub) typhusSub.textContent = `${typhusPct}% notifications`;
 
     // 6. Top Hotspot Zone
     const zoneCounts = {};
     filteredPatients.forEach(p => {
-      const name = p.zoneName || `Zone ${p.zoneNum}`;
+      // Use clean zone name for compact fit (e.g. "Dharampeth" instead of "Dharampeth (Zone 2)")
+      let name = p.zoneName || `Zone ${p.zoneNum}`;
+      if (name.includes('(')) {
+        name = name.split('(')[0].trim();
+      }
       zoneCounts[name] = (zoneCounts[name] || 0) + 1;
     });
 
@@ -104,7 +108,7 @@ const KPIManager = {
       const recent30Count = validDates.filter(d => d >= thirtyDaysAgo).length;
 
       if (trendElem) trendElem.textContent = `+${recent7Count} (7d) / +${recent30Count} (30d)`;
-      if (trendSub) trendSub.textContent = `Moving notification velocity`;
+      if (trendSub) trendSub.textContent = `Moving velocity`;
     } else {
       if (trendElem) trendElem.textContent = `Stable`;
       if (trendSub) trendSub.textContent = `0 moving delta`;
@@ -114,6 +118,6 @@ const KPIManager = {
     const cfrElem = document.getElementById('kpi-cfr-rate');
     const cfrSub = document.getElementById('kpi-cfr-subtext');
     if (cfrElem) cfrElem.textContent = '0.00%';
-    if (cfrSub) cfrSub.textContent = '0 fatalities recorded';
+    if (cfrSub) cfrSub.textContent = '0 fatalities';
   }
 };
