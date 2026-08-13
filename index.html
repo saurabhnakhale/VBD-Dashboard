@@ -9,7 +9,7 @@
   <!-- External CDNs -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=20260813_02">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -407,8 +407,8 @@
             <div class="card-title-group">
               <i class="fa-solid fa-earth-asia card-title-icon"></i>
               <div>
-                <h3 class="card-title">Geographical Outbreak GIS Map &amp; Sheet 2 High-Risk Hotspots</h3>
-                <p class="card-subtitle">Interactive spatial plotting of hospital nodes, zone density circles, and Sheet 2 designated high-risk localities</p>
+                <h3 class="card-title">Geographical Outbreak GIS Map &amp; Ward Boundaries</h3>
+                <p class="card-subtitle">Interactive spatial plotting of ward boundaries (wards_simplified.geojson), hospital nodes, and Sheet 2 high-risk localities</p>
               </div>
             </div>
           </div>
@@ -481,14 +481,14 @@
 
   </div>
 
-  <!-- Application Logic Scripts -->
-  <script src="js/weatherManager.js"></script>
-  <script src="js/dataLoader.js"></script>
-  <script src="js/kpiManager.js"></script>
-  <script src="js/chartManager.js"></script>
-  <script src="js/heatmapManager.js"></script>
-  <script src="js/wardsData.js"></script>
-  <script src="js/mapManager.js"></script>
-  <script src="js/app.js"></script>
+  <!-- Application Logic Scripts with Cache-Busting Versioning -->
+  <script src="js/weatherManager.js?v=20260813_02"></script>
+  <script src="js/dataLoader.js?v=20260813_02"></script>
+  <script src="js/kpiManager.js?v=20260813_02"></script>
+  <script src="js/chartManager.js?v=20260813_02"></script>
+  <script src="js/heatmapManager.js?v=20260813_02"></script>
+  <script src="js/wardsData.js?v=20260813_02"></script>
+  <script src="js/mapManager.js?v=20260813_02"></script>
+  <script src="js/app.js?v=20260813_02"></script>
 </body>
 </html>

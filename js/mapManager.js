@@ -69,6 +69,7 @@ const MapManager = {
   markersGroup: null,
   highRiskGroup: null,
   geoJsonGroup: null,
+  geoJsonData: null,
   hasFittedBounds: false,
 
   init() {
@@ -101,14 +102,7 @@ const MapManager = {
     return match ? parseInt(match[0], 10) : null;
   },
 
-  getGeoJsonData() {
-    if (typeof WARDS_GEOJSON !== 'undefined' && WARDS_GEOJSON) {
-      return WARDS_GEOJSON;
-    }
-    return null;
-  },
-
-  render(patients, highRiskAreas) {
+  async render(patients, highRiskAreas) {
     this.init();
 
     this.geoJsonGroup.clearLayers();
@@ -133,8 +127,21 @@ const MapManager = {
       }
     });
 
-    // 2. Render Ward Polygons (wards_simplified.geojson)
-    const geoData = this.getGeoJsonData();
+    // 2. Fetch or load GeoJSON features
+    let geoData = (typeof WARDS_GEOJSON !== 'undefined' && WARDS_GEOJSON) ? WARDS_GEOJSON : this.geoJsonData;
+
+    if (!geoData) {
+      try {
+        const resp = await fetch('wards_simplified.geojson');
+        if (resp.ok) {
+          geoData = await resp.json();
+          this.geoJsonData = geoData;
+        }
+      } catch (e) {
+        console.warn("Unable to fetch wards_simplified.geojson fallback:", e);
+      }
+    }
+
     if (geoData) {
       const geoJsonLayer = L.geoJSON(geoData, {
         style: (feature) => {
@@ -142,31 +149,31 @@ const MapManager = {
           const pNum = this.extractPrabhagNumber(rawName);
           const count = pNum && prabhagCounts[pNum] ? prabhagCounts[pNum].Total : 0;
 
-          let fillColor = 'rgba(99, 102, 241, 0.25)'; // Baseline Indigo
-          let strokeColor = '#818cf8';
-          let weight = 1.8;
+          let fillColor = '#6366f1';
+          let strokeColor = '#38bdf8';
+          let weight = 2.0;
 
           if (count > 15) {
-            fillColor = 'rgba(239, 68, 68, 0.75)'; // Crimson High Risk
+            fillColor = '#ef4444';
             strokeColor = '#f43f5e';
             weight = 2.5;
           } else if (count > 8) {
-            fillColor = 'rgba(236, 72, 153, 0.65)'; // Pink
+            fillColor = '#ec4899';
             strokeColor = '#f472b6';
             weight = 2.2;
           } else if (count > 3) {
-            fillColor = 'rgba(245, 158, 11, 0.55)'; // Amber
+            fillColor = '#f59e0b';
             strokeColor = '#fbbf24';
             weight = 2.0;
           } else if (count > 0) {
-            fillColor = 'rgba(6, 182, 212, 0.45)'; // Cyan
+            fillColor = '#06b6d4';
             strokeColor = '#22d3ee';
             weight = 1.8;
           }
 
           return {
             fillColor: fillColor,
-            fillOpacity: 0.7,
+            fillOpacity: 0.55,
             color: strokeColor,
             weight: weight,
             opacity: 0.95
