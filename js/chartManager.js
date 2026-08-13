@@ -1,6 +1,5 @@
 /**
  * ChartManager.js - Manages all Chart.js visualizations for the dashboard.
- * Chart 5: Top High-Risk Localities Disease Breakdown (Horizontal Stacked Bar Chart).
  */
 
 const ChartManager = {
@@ -28,7 +27,6 @@ const ChartManager = {
     this.renderFacilityBurden(patients);
     this.renderZonePrabhagDistribution(patients);
     this.renderHighRiskCorrelation(patients);
-    this.renderAgeDiseaseVulnerability(patients);
     this.setupGranularityListeners();
     this.setupZoneChartControls();
   },
@@ -846,51 +844,6 @@ const ChartManager = {
             }
           }
         }
-      }
-    });
-  },
-
-  // 6. Age Group Susceptibility
-  renderAgeDiseaseVulnerability(patients) {
-    this.destroyChart('chart-vulnerability');
-    const ctx = document.getElementById('chart-vulnerability')?.getContext('2d');
-    if (!ctx) return;
-
-    const ageGroups = ['Pediatric (<15)', 'Youth (15-34)', 'Adult (35-59)', 'Elderly (60+)'];
-    const chikData = [0, 0, 0, 0];
-    const dengData = [0, 0, 0, 0];
-    const malariaData = [0, 0, 0, 0];
-
-    patients.forEach(p => {
-      const idx = ageGroups.indexOf(p.ageGroup);
-      if (idx !== -1) {
-        const cat = this.getDiseaseCategory(p.disease);
-        if (cat === 'Chikungunya') chikData[idx]++;
-        else if (cat === 'Dengue') dengData[idx]++;
-        else if (cat === 'Malaria') malariaData[idx]++;
-      }
-    });
-
-    this.charts['chart-vulnerability'] = new Chart(ctx, {
-      type: 'radar',
-      data: {
-        labels: ageGroups,
-        datasets: [
-          { label: 'Dengue', data: dengData, backgroundColor: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7' },
-          { label: 'Chikungunya', data: chikData, backgroundColor: 'rgba(236, 72, 153, 0.25)', borderColor: '#ec4899' },
-          { label: 'Malaria', data: malariaData, backgroundColor: 'rgba(6, 182, 212, 0.25)', borderColor: '#06b6d4' }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          r: {
-            angleLines: { color: 'rgba(255,255,255,0.1)' },
-            grid: { color: 'rgba(255,255,255,0.1)' }
-          }
-        },
-        plugins: { legend: { position: 'top' } }
       }
     });
   }
