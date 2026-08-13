@@ -1,6 +1,6 @@
 /**
  * ChartManager.js - Manages 6 advanced Chart.js visualizations for the dashboard.
- * Includes "Case Trend Over Time" stacked bar chart matching user reference image.
+ * Chart 4: Zone & Prabhag-Wise Case Distribution Graph.
  */
 
 const ChartManager = {
@@ -24,7 +24,7 @@ const ChartManager = {
     this.renderEpidemicCurve(patients, this.currentGranularity);
     this.renderDemographicPyramid(patients);
     this.renderFacilityBurden(patients);
-    this.renderZoneMatrixHeatmap(patients);
+    this.renderZonePrabhagDistribution(patients);
     this.renderHighRiskCorrelation(patients);
     this.renderAgeDiseaseVulnerability(patients);
     this.setupGranularityListeners();
@@ -62,12 +62,10 @@ const ChartManager = {
     if (d.includes('positive') || d.includes('scrub') || d.includes('japanese') || d.includes('encephalitis') || d.includes('je')) {
       return 'Dengue (Positive)';
     }
-    return 'Dengue'; // Default
+    return 'Dengue';
   },
 
-  // =========================================================================
   // 1. Case Trend Over Time (Stacked Bar Chart matching user reference image)
-  // =========================================================================
   renderEpidemicCurve(patients, granularity = 'daily') {
     this.destroyChart('chart-epicurve');
     const ctx = document.getElementById('chart-epicurve')?.getContext('2d');
@@ -75,9 +73,6 @@ const ChartManager = {
 
     let labels = [];
     let xAxisTitle = '';
-    const categories = ['Dengue', 'Chikungunya', 'Malaria', 'Dengue (Positive)'];
-
-    // Map structure: { labelKey: { Dengue: 0, Chikungunya: 0, Malaria: 0, 'Dengue (Positive)': 0 } }
     const timeMap = {};
 
     if (granularity === 'daily') {
@@ -143,7 +138,6 @@ const ChartManager = {
     const malariaData = labels.map(l => timeMap[l]['Malaria']);
     const denguePosData = labels.map(l => timeMap[l]['Dengue (Positive)']);
 
-    // Inline DataLabels Plugin to draw segment numerical counts inside bars
     const inlineBarLabelsPlugin = {
       id: 'inlineBarLabels',
       afterDatasetsDraw(chart) {
@@ -179,94 +173,30 @@ const ChartManager = {
       data: {
         labels: labels,
         datasets: [
-          {
-            label: 'Dengue',
-            data: dengueData,
-            backgroundColor: '#c8372d',
-            borderColor: '#b02a21',
-            borderWidth: 1,
-            borderRadius: 2
-          },
-          {
-            label: 'Chikungunya',
-            data: chikData,
-            backgroundColor: '#e67e22',
-            borderColor: '#d35400',
-            borderWidth: 1,
-            borderRadius: 2
-          },
-          {
-            label: 'Malaria',
-            data: malariaData,
-            backgroundColor: '#1e824c',
-            borderColor: '#145a32',
-            borderWidth: 1,
-            borderRadius: 2
-          },
-          {
-            label: 'Dengue (Positive)',
-            data: denguePosData,
-            backgroundColor: '#7b241c',
-            borderColor: '#641e16',
-            borderWidth: 1,
-            borderRadius: 2
-          }
+          { label: 'Dengue', data: dengueData, backgroundColor: '#c8372d', borderColor: '#b02a21', borderWidth: 1, borderRadius: 2 },
+          { label: 'Chikungunya', data: chikData, backgroundColor: '#e67e22', borderColor: '#d35400', borderWidth: 1, borderRadius: 2 },
+          { label: 'Malaria', data: malariaData, backgroundColor: '#1e824c', borderColor: '#145a32', borderWidth: 1, borderRadius: 2 },
+          { label: 'Dengue (Positive)', data: denguePosData, backgroundColor: '#7b241c', borderColor: '#641e16', borderWidth: 1, borderRadius: 2 }
         ]
       },
       plugins: [inlineBarLabelsPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        interaction: {
-          mode: 'index',
-          intersect: false
-        },
+        interaction: { mode: 'index', intersect: false },
         scales: {
-          x: {
-            stacked: true,
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            title: {
-              display: true,
-              text: xAxisTitle,
-              color: '#94a3b8',
-              font: { weight: '600', size: 11 }
-            }
-          },
-          y: {
-            stacked: true,
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            beginAtZero: true,
-            ticks: {
-              precision: 0
-            }
-          }
+          x: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: xAxisTitle, color: '#94a3b8', font: { weight: '600', size: 11 } } },
+          y: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true, ticks: { precision: 0 } }
         },
         plugins: {
-          legend: {
-            position: 'bottom',
-            labels: {
-              usePointStyle: false,
-              boxWidth: 14,
-              boxHeight: 14,
-              padding: 20,
-              font: { size: 12, weight: '600' }
-            }
-          },
-          tooltip: {
-            callbacks: {
-              footer: (items) => {
-                let sum = 0;
-                items.forEach(i => sum += i.raw);
-                return `Total Cases: ${sum}`;
-              }
-            }
-          }
+          legend: { position: 'bottom', labels: { usePointStyle: false, boxWidth: 14, boxHeight: 14, padding: 20, font: { size: 12, weight: '600' } } },
+          tooltip: { callbacks: { footer: (items) => { let sum = 0; items.forEach(i => sum += i.raw); return `Total Cases: ${sum}`; } } }
         }
       }
     });
   },
 
-  // 2. Demographic Risk Pyramid (Back-to-Back Population Pyramid)
+  // 2. Demographic Risk Pyramid
   renderDemographicPyramid(patients) {
     this.destroyChart('chart-demographics');
     const ctx = document.getElementById('chart-demographics')?.getContext('2d');
@@ -290,20 +220,8 @@ const ChartManager = {
       data: {
         labels: brackets,
         datasets: [
-          {
-            label: 'Male (Left Axis)',
-            data: maleDiverging,
-            backgroundColor: 'rgba(59, 130, 246, 0.85)',
-            borderColor: '#3b82f6',
-            borderRadius: 4
-          },
-          {
-            label: 'Female (Right Axis)',
-            data: femaleCounts,
-            backgroundColor: 'rgba(236, 72, 153, 0.85)',
-            borderColor: '#ec4899',
-            borderRadius: 4
-          }
+          { label: 'Male (Left Axis)', data: maleDiverging, backgroundColor: 'rgba(59, 130, 246, 0.85)', borderColor: '#3b82f6', borderRadius: 4 },
+          { label: 'Female (Right Axis)', data: femaleCounts, backgroundColor: 'rgba(236, 72, 153, 0.85)', borderColor: '#ec4899', borderRadius: 4 }
         ]
       },
       options: {
@@ -311,24 +229,12 @@ const ChartManager = {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: {
-            stacked: false,
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            ticks: { callback: (val) => Math.abs(val) },
-            title: { display: true, text: '← Male Cases | Female Cases →', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
-          },
-          y: {
-            grid: { display: false },
-            title: { display: true, text: 'Age Brackets (Years)', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
-          }
+          x: { stacked: false, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { callback: (val) => Math.abs(val) }, title: { display: true, text: '← Male Cases | Female Cases →', color: '#94a3b8', font: { weight: 'bold', size: 11 } } },
+          y: { grid: { display: false }, title: { display: true, text: 'Age Brackets (Years)', color: '#94a3b8', font: { weight: 'bold', size: 11 } } }
         },
         plugins: {
           legend: { position: 'top' },
-          tooltip: {
-            callbacks: {
-              label: (item) => `${item.dataset.label.split(' ')[0]}: ${Math.abs(item.raw)} cases`
-            }
-          }
+          tooltip: { callbacks: { label: (item) => `${item.dataset.label.split(' ')[0]}: ${Math.abs(item.raw)} cases` } }
         }
       }
     });
@@ -380,90 +286,106 @@ const ChartManager = {
     });
   },
 
-  // 4. Spatial-Temporal Zone Outbreak Burden Matrix
-  renderZoneMatrixHeatmap(patients) {
+  // =========================================================================
+  // 4. REPLACEMENT: Zone & Prabhag-Wise Case Distribution Graph
+  // =========================================================================
+  renderZonePrabhagDistribution(patients) {
     this.destroyChart('chart-zones');
     const ctx = document.getElementById('chart-zones')?.getContext('2d');
     if (!ctx) return;
 
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const zones = Array.from({ length: 10 }, (_, i) => `Zone ${i + 1}`);
-
-    const matrix = {};
-    zones.forEach(z => {
-      matrix[z] = {};
-      months.forEach(m => matrix[z][m] = 0);
-    });
+    const zoneMap = {};
+    for (let i = 1; i <= 10; i++) {
+      zoneMap[`Zone ${i}`] = { total: 0, prabhags: {} };
+    }
 
     patients.forEach(p => {
       const zKey = `Zone ${p.zoneNum || 10}`;
-      let mStr = p.month || 'Jan';
-      const mIdx = months.findIndex(m => mStr.toLowerCase().startsWith(m.toLowerCase()));
-      const mKey = mIdx !== -1 ? months[mIdx] : 'Jan';
-      if (matrix[zKey] && matrix[zKey][mKey] !== undefined) {
-        matrix[zKey][mKey]++;
+      let prab = p.prabhag ? (String(p.prabhag).toLowerCase().includes('prabhag') ? p.prabhag : `Prabhag ${p.prabhag}`) : 'Unspecified';
+
+      if (!zoneMap[zKey]) {
+        zoneMap[zKey] = { total: 0, prabhags: {} };
       }
+      zoneMap[zKey].total++;
+      zoneMap[zKey].prabhags[prab] = (zoneMap[zKey].prabhags[prab] || 0) + 1;
     });
 
-    const bubbleData = [];
-    zones.forEach((z, zIdx) => {
-      months.forEach((m, mIdx) => {
-        const val = matrix[z][m];
-        if (val > 0) {
-          bubbleData.push({
-            x: mIdx,
-            y: zIdx,
-            r: Math.min(Math.max(val * 1.4, 4), 16),
-            v: val
+    const labels = Object.keys(zoneMap);
+    const totalData = labels.map(z => zoneMap[z].total);
+
+    // Vibrant distinct colors for each Zone (Zones 1 to 10)
+    const zoneColors = [
+      '#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b',
+      '#ef4444', '#06b6d4', '#6366f1', '#14b8a6', '#f43f5e'
+    ];
+
+    // Custom DataLabels Plugin to print case totals above each Zone bar
+    const zoneLabelsPlugin = {
+      id: 'zoneLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta(datasetIndex);
+          if (meta.hidden) return;
+
+          meta.data.forEach((element, index) => {
+            const val = dataset.data[index];
+            if (val > 0) {
+              ctx.save();
+              ctx.fillStyle = '#ffffff';
+              ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              ctx.fillText(val, element.x, element.y - 4);
+              ctx.restore();
+            }
           });
-        }
-      });
-    });
+        });
+      }
+    };
 
     this.charts['chart-zones'] = new Chart(ctx, {
-      type: 'bubble',
+      type: 'bar',
       data: {
+        labels: labels,
         datasets: [{
-          label: 'Outbreak Intensity',
-          data: bubbleData,
-          backgroundColor: (ctx) => {
-            const val = ctx.raw?.v || 0;
-            if (val > 50) return 'rgba(200, 55, 45, 0.85)';
-            if (val > 25) return 'rgba(230, 126, 34, 0.85)';
-            if (val > 10) return 'rgba(241, 196, 15, 0.85)';
-            return 'rgba(30, 130, 76, 0.75)';
-          },
-          borderColor: '#ffffff',
-          borderWidth: 1
+          label: 'Zone & Prabhag Case Burden',
+          data: totalData,
+          backgroundColor: zoneColors.map(c => `${c}cc`),
+          borderColor: zoneColors,
+          borderWidth: 1.5,
+          borderRadius: 6
         }]
       },
+      plugins: [zoneLabelsPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
           x: {
-            type: 'linear',
-            position: 'bottom',
-            min: -0.5,
-            max: 11.5,
-            ticks: { stepSize: 1, callback: (val) => months[val] || '' },
             grid: { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: 'Months of the Year', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
+            title: { display: true, text: 'NMC Municipal Zones (Zones 1 - 10)', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
           },
           y: {
-            type: 'linear',
-            min: -0.5,
-            max: 9.5,
-            ticks: { stepSize: 1, callback: (val) => zones[val] || '' },
             grid: { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: 'NMC Municipal Zones (1-10)', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
+            title: { display: true, text: 'Notified Cases Count', color: '#94a3b8', font: { weight: 'bold', size: 11 } },
+            beginAtZero: true
           }
         },
         plugins: {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (item) => `${zones[item.raw.y]} in ${months[item.raw.x]}: ${item.raw.v} cases`
+              title: (items) => `Nagpur Municipal ${items[0].label}`,
+              label: (item) => `Total Zone Burden: ${item.raw} cases`,
+              afterBody: (items) => {
+                const zKey = items[0].label;
+                const prabs = zoneMap[zKey]?.prabhags || {};
+                const sortedPrabs = Object.entries(prabs).sort((a, b) => b[1] - a[1]).slice(0, 5);
+                if (sortedPrabs.length === 0) return '';
+                const prabLines = sortedPrabs.map(([pName, count]) => `  📍 ${pName}: ${count} cases`);
+                return ['\nPrabhag Breakdown:'].concat(prabLines);
+              }
             }
           }
         }
