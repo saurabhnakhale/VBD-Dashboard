@@ -44,6 +44,28 @@ function processHeatmapData(records) {
   return matrix;
 }
 
+function renderMatrixCell(zoneData, prabhagKey) {
+  if (!zoneData) return `<td class="empty-cell">-</td>`;
+  const cellData = zoneData[prabhagKey];
+
+  // Agar koi case nahi hai
+  if (!cellData || cellData.total === 0) {
+    return `<td class="empty-cell">-</td>`;
+  }
+
+  // Exact Disease Numbers dikhane ke liye
+  return `
+    <td class="case-number-cell">
+      <div class="disease-counts-wrapper">
+        ${cellData.dengue > 0 ? `<span class="count-badge dengue-badge" title="Dengue: ${cellData.dengue}">${cellData.dengue}D</span>` : ''}
+        ${cellData.chikungunya > 0 ? `<span class="count-badge chik-badge" title="Chikungunya: ${cellData.chikungunya}">${cellData.chikungunya}C</span>` : ''}
+        ${cellData.malaria > 0 ? `<span class="count-badge malaria-badge" title="Malaria: ${cellData.malaria}">${cellData.malaria}M</span>` : ''}
+        ${cellData.scrub > 0 ? `<span class="count-badge scrub-badge" title="Scrub Typhus / JE: ${cellData.scrub}">${cellData.scrub}S</span>` : ''}
+      </div>
+    </td>
+  `;
+}
+
 const HeatmapManager = {
   render(patients) {
     const container = document.getElementById('heatmap-container');
