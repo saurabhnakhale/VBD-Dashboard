@@ -1,7 +1,7 @@
 /**
  * MapManager.js - Leaflet.js GIS spatial mapping with Ward GeoJSON boundaries (wards.geojson / WARDS_GEOJSON),
  * Ward-to-Zone Mapping (ward_zone_mapping.json / WARD_ZONE_MAPPING), high-contrast choropleth polygons,
- * hospital pins, and Sheet 2 High Risk overlays.
+ * and hospital nodes (Hotspot circles disabled for initial clean ward map testing).
  */
 
 // Coordinates for Nagpur Localities & Landmarks
@@ -201,7 +201,7 @@ const MapManager = {
           layer.bindPopup(`
             <div style="color: #0f172a; padding: 4px; min-width: 200px;">
               <strong style="color: #4f46e5; font-size: 14px;">🏛️ ${wardName}</strong><br/>
-              <span style="color: #475569; font-size: 12px;"><b>Mapped Zone:</b> ${mappedZone}</span>
+              <span style="color: #475569; font-size: 12px;"><b>Municipal Zone:</b> ${mappedZone}</span>
               <hr style="margin: 6px 0; border: 0; border-top: 1px solid #cbd5e1;"/>
               <div style="font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px;">
                 📊 Active Case Burden: <span style="color: #dc2626;">${pData.Total} cases</span>
@@ -246,44 +246,8 @@ const MapManager = {
       }
     }
 
-    // 4. Plot Sheet 2 High-Risk Hotspot Overlays
-    if (highRiskAreas && highRiskAreas.length > 0) {
-      highRiskAreas.forEach(hr => {
-        const allLocs = [
-          ...hr.highRiskDengue.split(','),
-          ...hr.highRiskChikungunya.split(',')
-        ].map(s => s.trim()).filter(s => s.length > 2);
-
-        allLocs.forEach(locName => {
-          const coordKey = Object.keys(LOCALITY_COORDS).find(k => k.toLowerCase() === locName.toLowerCase() || locName.toLowerCase().includes(k.toLowerCase()));
-          if (coordKey) {
-            const coords = LOCALITY_COORDS[coordKey];
-            
-            const circle = L.circle(coords, {
-              color: '#ef4444',
-              fillColor: '#f43f5e',
-              fillOpacity: 0.45,
-              radius: 400,
-              weight: 2
-            });
-
-            circle.bindPopup(`
-              <div style="color: #0f172a; padding: 4px;">
-                <strong style="color: #ef4444;">🚨 SHEET 2 HIGH RISK HOTSPOT</strong><br/>
-                <b>Locality:</b> ${locName}<br/>
-                <b>Zone:</b> ${hr.zoneName || `Zone ${hr.zoneNum}`}<br/>
-                <b>Prabhag:</b> ${hr.prabhag}<br/>
-                <hr style="margin: 4px 0; border: 0; border-top: 1px solid #ddd;"/>
-                <small><b>Dengue High Risk:</b> ${hr.highRiskDengue || 'None'}</small><br/>
-                <small><b>Chikungunya High Risk:</b> ${hr.highRiskChikungunya || 'None'}</small>
-              </div>
-            `);
-
-            this.highRiskGroup.addLayer(circle);
-          }
-        });
-      });
-    }
+    // 4. Hotspot Circles Overlay (Disabled per user request for testing clean Ward map)
+    // Red hotspot circles are intentionally omitted so user can test clean Ward boundaries first.
 
     // 5. Plot Hospitals
     Object.entries(HOSPITAL_COORDS).forEach(([hospName, coords]) => {
