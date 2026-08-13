@@ -1,13 +1,14 @@
 /**
  * ChartManager.js - Manages all Chart.js visualizations for the dashboard.
- * Chart 4: Dynamic Zone & Prabhag-wise Disease Breakdown Chart with Interactive Drill-Down.
+ * Chart 4: Dynamic Zone & Prabhag-wise Disease Distribution Chart with Control Header.
  */
 
 const ChartManager = {
   charts: {},
   currentPatients: [],
   currentFullGranularity: 'daily',
-  currentDrilldownZone: null,
+  currentZoneView: 'zone', // 'zone' or 'prabhag'
+  selectedZoneForPrabhag: 'ALL', // 'ALL' or '1'..'10'
 
   init() {
     Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
@@ -29,6 +30,7 @@ const ChartManager = {
     this.renderHighRiskCorrelation(patients);
     this.renderAgeDiseaseVulnerability(patients);
     this.setupGranularityListeners();
+    this.setupZoneChartControls();
   },
 
   destroyChart(id) {
@@ -53,6 +55,82 @@ const ChartManager = {
         this.currentFullGranularity = gran;
         this.renderFullEpidemicCurve(this.currentPatients, gran);
       });
+    }
+  },
+
+  setupZoneChartControls() {
+    const btnZoneView = document.getElementById('btn-view-zone');
+    const btnPrabhagView = document.getElementById('btn-view-prabhag');
+    const dropdownZone = document.getElementById('zone-select-dropdown');
+    const btnBack = document.getElementById('btn-back-to-zones');
+
+    if (btnZoneView && !btnZoneView.dataset.bound) {
+      btnZoneView.dataset.bound = 'true';
+      btnZoneView.addEventListener('click', () => {
+        this.currentZoneView = 'zone';
+        this.selectedZoneForPrabhag = 'ALL';
+        if (dropdownZone) dropdownZone.value = 'ALL';
+        this.updateZoneControlsUI();
+        this.renderZonePrabhagDistribution(this.currentPatients);
+      });
+    }
+
+    if (btnPrabhagView && !btnPrabhagView.dataset.bound) {
+      btnPrabhagView.dataset.bound = 'true';
+      btnPrabhagView.addEventListener('click', () => {
+        this.currentZoneView = 'prabhag';
+        this.updateZoneControlsUI();
+        this.renderZonePrabhagDistribution(this.currentPatients);
+      });
+    }
+
+    if (dropdownZone && !dropdownZone.dataset.bound) {
+      dropdownZone.dataset.bound = 'true';
+      dropdownZone.addEventListener('change', (e) => {
+        const val = e.target.value;
+        this.selectedZoneForPrabhag = val;
+        if (val !== 'ALL') {
+          this.currentZoneView = 'prabhag';
+        }
+        this.updateZoneControlsUI();
+        this.renderZonePrabhagDistribution(this.currentPatients);
+      });
+    }
+
+    if (btnBack && !btnBack.dataset.bound) {
+      btnBack.dataset.bound = 'true';
+      btnBack.addEventListener('click', () => {
+        this.currentZoneView = 'zone';
+        this.selectedZoneForPrabhag = 'ALL';
+        if (dropdownZone) dropdownZone.value = 'ALL';
+        this.updateZoneControlsUI();
+        this.renderZonePrabhagDistribution(this.currentPatients);
+      });
+    }
+  },
+
+  updateZoneControlsUI() {
+    const btnZoneView = document.getElementById('btn-view-zone');
+    const btnPrabhagView = document.getElementById('btn-view-prabhag');
+    const dropdownZone = document.getElementById('zone-select-dropdown');
+    const btnBack = document.getElementById('btn-back-to-zones');
+
+    if (btnZoneView && btnPrabhagView) {
+      if (this.currentZoneView === 'zone') {
+        btnZoneView.classList.add('active');
+        btnPrabhagView.classList.remove('active');
+      } else {
+        btnPrabhagView.classList.add('active');
+        btnZoneView.classList.remove('active');
+      }
+    }
+
+    if (dropdownZone) {
+      dropdownZone.value = this.selectedZoneForPrabhag;
+    }
+
+    if (btnBack) {
+      btnBack.style.display = this.currentZoneView === 'prabhag' ? 'inline-flex' : 'none';
     }
   },
 
@@ -276,7 +354,7 @@ const ChartManager = {
   },
 
   // =========================================================================
-  // 4. DYNAMIC ZONE & PRABHAG-WISE DISEASE BREAKDOWN CHART (WITH DRILLDOWN)
+  // 4. INTERACTIVE ZONE & PRABHAG-WISE DISEASE DISTRIBUTION CHART
   // =========================================================================
   renderZonePrabhagDistribution(patients) {
     this.destroyChart('chart-zones');
@@ -284,7 +362,8 @@ const ChartManager = {
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
 
-    const backBtn = document.getElementById('btn-back-to-zones');
+    this.updateZoneControlsUI();
+
     const titleElem = document.getElementById('zone-chart-title');
     const subtitleElem = document.getElementById('zone-chart-subtitle');
 
@@ -303,13 +382,12 @@ const ChartManager = {
       return 'JE_Other';
     };
 
-    if (this.currentDrilldownZone === null) {
+    if (this.currentZoneView === 'zone') {
       // ---------------------------------------------------------------------
-      // PRIMARY VIEW: Zone-Wise Disease Breakdown (Zones 1 - 10)
+      // PRIMARY VIEW: Zone Level (Zones 1 - 10)
       // ---------------------------------------------------------------------
-      if (backBtn) backBtn.style.display = 'none';
       if (titleElem) titleElem.textContent = '4. Zone & Prabhag Case Distribution';
-      if (subtitleElem) subtitleElem.textContent = 'Stacked disease breakdown across NMC Municipal Zones 1–10 (Click any Zone to drill down into Prabhags)';
+      if (subtitleElem) subtitleElem.textContent = 'Stacked disease breakdown across NMC Municipal Zones 1–10 (Click any Zone bar to drill down into Prabhags)';
 
       const zones = Array.from({ length: 10 }, (_, i) => `Zone ${i + 1}`);
 
@@ -376,8 +454,9 @@ const ChartManager = {
           onClick: (e, elements) => {
             if (elements && elements.length > 0) {
               const idx = elements[0].index;
-              const selectedZone = zones[idx];
-              this.currentDrilldownZone = selectedZone;
+              const selectedZoneNum = idx + 1;
+              this.selectedZoneForPrabhag = String(selectedZoneNum);
+              this.currentZoneView = 'prabhag';
               this.renderZonePrabhagDistribution(this.currentPatients);
             }
           },
@@ -408,12 +487,19 @@ const ChartManager = {
                   const total = zoneDataMap[zKey]?.total || 1;
                   const val = item.raw;
                   const pct = ((val / total) * 100).toFixed(1);
-                  return `${item.dataset.label}: ${val} cases (${pct}% share of total zone cases)`;
+                  return `${item.dataset.label}: ${val} cases (${pct}% share of zone total)`;
                 },
-                footer: (items) => {
-                  let sum = 0;
-                  items.forEach(i => sum += i.raw);
-                  return `Total Zone Cases: ${sum}`;
+                afterBody: (items) => {
+                  const zKey = items[0].label;
+                  const dObj = zoneDataMap[zKey] || {};
+                  return [
+                    '',
+                    `📍 Total Zone Cases: ${dObj.total || 0}`,
+                    ` • Dengue: ${dObj.Dengue || 0}`,
+                    ` • Chikungunya: ${dObj.Chikungunya || 0}`,
+                    ` • Malaria: ${dObj.Malaria || 0}`,
+                    ` • JE / Others: ${dObj.JE_Other || 0}`
+                  ];
                 }
               }
             }
@@ -423,29 +509,22 @@ const ChartManager = {
 
     } else {
       // ---------------------------------------------------------------------
-      // SECONDARY VIEW: Prabhag Drill-Down for Selected Zone
+      // SECONDARY VIEW: Prabhag Level Drill-Down
       // ---------------------------------------------------------------------
-      const zoneName = this.currentDrilldownZone;
-      const zoneNumInt = parseInt(zoneName.replace('Zone ', ''), 10);
+      const isAll = this.selectedZoneForPrabhag === 'ALL';
+      const zoneFilterVal = isAll ? null : parseInt(this.selectedZoneForPrabhag, 10);
+      const selectedZoneName = isAll ? 'All City Zones' : `Zone ${this.selectedZoneForPrabhag}`;
 
-      if (backBtn) {
-        backBtn.style.display = 'inline-flex';
-        if (!backBtn.dataset.bound) {
-          backBtn.dataset.bound = 'true';
-          backBtn.addEventListener('click', () => {
-            this.currentDrilldownZone = null;
-            this.renderZonePrabhagDistribution(this.currentPatients);
-          });
-        }
-      }
+      if (titleElem) titleElem.textContent = `4. ${selectedZoneName} Prabhag-Wise Case Breakdown`;
+      if (subtitleElem) subtitleElem.textContent = `Stacked disease distribution across Prabhags in ${selectedZoneName}`;
 
-      if (titleElem) titleElem.textContent = `4. ${zoneName} Prabhag-Wise Disease Breakdown`;
-      if (subtitleElem) subtitleElem.textContent = `Detailed disease breakdown across all Prabhags in ${zoneName}`;
+      const filteredZonePatients = isAll 
+        ? patients 
+        : patients.filter(p => p.zoneNum === zoneFilterVal);
 
-      const zonePatients = patients.filter(p => p.zoneNum === zoneNumInt);
       const prabhagDataMap = {};
 
-      zonePatients.forEach(p => {
+      filteredZonePatients.forEach(p => {
         let prabRaw = p.prabhag ? String(p.prabhag).trim() : 'Unspecified';
         if (!prabRaw.toLowerCase().includes('prabhag') && prabRaw !== 'Unspecified') {
           prabRaw = `Prabhag ${prabRaw}`;
@@ -460,7 +539,10 @@ const ChartManager = {
         prabhagDataMap[prabRaw].total++;
       });
 
-      const prabhagLabels = Object.keys(prabhagDataMap).sort((a, b) => prabhagDataMap[b].total - prabhagDataMap[a].total);
+      const prabhagLabels = Object.keys(prabhagDataMap)
+        .sort((a, b) => prabhagDataMap[b].total - prabhagDataMap[a].total)
+        .slice(0, isAll ? 12 : 25);
+
       if (prabhagLabels.length === 0) {
         prabhagLabels.push('No Data Available');
         prabhagDataMap['No Data Available'] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE_Other: 0, total: 0 };
@@ -516,7 +598,7 @@ const ChartManager = {
             x: {
               stacked: true,
               grid: { color: 'rgba(255,255,255,0.05)' },
-              title: { display: true, text: `Prabhags in ${zoneName}`, color: '#94a3b8', font: { weight: 'bold', size: 11 } }
+              title: { display: true, text: `Prabhags (${selectedZoneName})`, color: '#94a3b8', font: { weight: 'bold', size: 11 } }
             },
             y: {
               stacked: true,
@@ -533,7 +615,7 @@ const ChartManager = {
             },
             tooltip: {
               callbacks: {
-                title: (items) => `${items[0].label} (${zoneName})`,
+                title: (items) => `${items[0].label} (${selectedZoneName})`,
                 label: (item) => {
                   const prabName = item.label;
                   const total = prabhagDataMap[prabName]?.total || 1;
@@ -541,10 +623,17 @@ const ChartManager = {
                   const pct = ((val / total) * 100).toFixed(1);
                   return `${item.dataset.label}: ${val} cases (${pct}% share of prabhag total)`;
                 },
-                footer: (items) => {
-                  let sum = 0;
-                  items.forEach(i => sum += i.raw);
-                  return `Total Prabhag Cases: ${sum}`;
+                afterBody: (items) => {
+                  const prabName = items[0].label;
+                  const dObj = prabhagDataMap[prabName] || {};
+                  return [
+                    '',
+                    `📍 Total Prabhag Cases: ${dObj.total || 0}`,
+                    ` • Dengue: ${dObj.Dengue || 0}`,
+                    ` • Chikungunya: ${dObj.Chikungunya || 0}`,
+                    ` • Malaria: ${dObj.Malaria || 0}`,
+                    ` • JE / Others: ${dObj.JE_Other || 0}`
+                  ];
                 }
               }
             }

@@ -319,9 +319,9 @@
 
       <!-- Section 3: Visualizations Grid (Row 2: Zone/Prabhag & High Risk Area Match) -->
       <section class="dashboard-grid-2">
-        <!-- Chart 4: Dynamic Zone & Prabhag Case Distribution (With Interactive Drill-Down) -->
+        <!-- Chart 4: Dynamic Zone & Prabhag Case Distribution (With Control Header & Drill-Down) -->
         <div class="chart-card">
-          <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center;">
+          <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem; justify-content: space-between; align-items: center;">
             <div class="card-title-group">
               <i class="fa-solid fa-map-location-dot card-title-icon"></i>
               <div>
@@ -330,11 +330,36 @@
               </div>
             </div>
 
-            <!-- Drill-Down Back Button -->
-            <button id="btn-back-to-zones" class="filter-reset-btn btn-sm" style="display: none; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.35); color: var(--blue-accent);">
-              <i class="fa-solid fa-arrow-left"></i> ← Back to All Zones
-            </button>
+            <!-- Controls Toolbar above Chart 4 -->
+            <div class="chart-controls-toolbar" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+              <!-- View Toggle Switch (Zone View vs Prabhag View) -->
+              <div class="pill-toggle-group" id="zone-view-toggle-group">
+                <button class="pill-btn active" id="btn-view-zone" data-view="zone">Zone View</button>
+                <button class="pill-btn" id="btn-view-prabhag" data-view="prabhag">Prabhag View</button>
+              </div>
+
+              <!-- Zone Selector Dropdown -->
+              <select id="zone-select-dropdown" class="filter-control" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 20px;">
+                <option value="ALL">All Zones (1-10)</option>
+                <option value="1">Zone 1</option>
+                <option value="2">Zone 2</option>
+                <option value="3">Zone 3</option>
+                <option value="4">Zone 4</option>
+                <option value="5">Zone 5</option>
+                <option value="6">Zone 6</option>
+                <option value="7">Zone 7</option>
+                <option value="8">Zone 8</option>
+                <option value="9">Zone 9</option>
+                <option value="10">Zone 10</option>
+              </select>
+
+              <!-- Back to Zones Button (shown in Prabhag view) -->
+              <button id="btn-back-to-zones" class="filter-reset-btn btn-sm" style="display: none; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.35); color: var(--blue-accent); border-radius: 20px;">
+                <i class="fa-solid fa-arrow-left"></i> ← Back to All Zones
+              </button>
+            </div>
           </div>
+
           <div class="chart-container">
             <canvas id="chart-zones"></canvas>
           </div>
