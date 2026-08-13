@@ -489,37 +489,35 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Time Granularity Button Group */
-.trend-granularity-toggle {
+/* Case Trend Pill Toggle Buttons (Matching User Reference Image) */
+.pill-toggle-group {
   display: flex;
   align-items: center;
-  gap: 0.25rem;
-  background: var(--bg-control, #0d1424);
-  padding: 3px;
-  border-radius: 8px;
-  border: 1px solid var(--border-card, rgba(255, 255, 255, 0.08));
+  gap: 0.5rem;
 }
 
-.btn-granularity {
+.pill-btn, .btn-granularity {
   background: transparent;
-  border: none;
+  border: 1px solid var(--border-card, #334155);
   color: var(--text-sub, #94a3b8);
-  padding: 0.25rem 0.65rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  border-radius: 6px;
+  padding: 0.35rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 20px; /* Rounded pill button */
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.btn-granularity:hover {
-  color: #ffffff;
+.pill-btn:hover, .btn-granularity:hover {
+  border-color: var(--blue-accent, #3b82f6);
+  color: var(--text-white, #ffffff);
 }
 
-.btn-granularity.active {
-  background: var(--blue-accent, #3b82f6);
+.pill-btn.active, .btn-granularity.active {
+  background: #0d5c63; /* Dark Teal matching image */
+  border-color: #0d5c63;
   color: #ffffff;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 2px 8px rgba(13, 92, 99, 0.4);
 }
 
 /* Chart Cards */

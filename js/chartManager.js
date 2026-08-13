@@ -1,15 +1,12 @@
 /**
- * ChartManager.js - Upgraded Modern Epidemiological Visualizations
- * 1. Epidemic Curve: Multi-Series Smooth Line Chart with 7-Day Moving Average
- * 2. Demographic Pyramid: Diverging WHO/CDC Style Age-Gender Population Pyramid
- * 3. Facility Burden: Stacked Breakdown by Disease Type (Dengue, Chikungunya, Malaria)
- * 4. Zone Outbreak Matrix: Spatial-Temporal Heatmap Matrix across Zones 1-10 & Months
+ * ChartManager.js - Manages 6 advanced Chart.js visualizations for the dashboard.
+ * Includes "Case Trend Over Time" stacked bar chart matching user reference image.
  */
 
 const ChartManager = {
   charts: {},
   currentPatients: [],
-  currentGranularity: 'monthly',
+  currentGranularity: 'daily',
 
   init() {
     Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
@@ -46,13 +43,13 @@ const ChartManager = {
 
     container.dataset.initialized = 'true';
     container.addEventListener('click', (e) => {
-      const btn = e.target.closest('.btn-granularity');
+      const btn = e.target.closest('.pill-btn') || e.target.closest('.btn-granularity');
       if (!btn) return;
 
-      container.querySelectorAll('.btn-granularity').forEach(b => b.classList.remove('active'));
+      container.querySelectorAll('.pill-btn, .btn-granularity').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
 
-      const gran = btn.dataset.granularity || 'monthly';
+      const gran = btn.dataset.granularity || 'daily';
       this.currentGranularity = gran;
       this.renderEpidemicCurve(this.currentPatients, gran);
     });
@@ -60,148 +57,163 @@ const ChartManager = {
 
   getDiseaseCategory(disStr) {
     const d = (disStr || '').toLowerCase();
-    if (d.includes('dengue')) return 'Dengue';
     if (d.includes('chikungunya') || d.includes('chikun')) return 'Chikungunya';
     if (d.includes('malaria')) return 'Malaria';
-    if (d.includes('japanese') || d.includes('encephalitis') || d.includes('je')) return 'Japanese Encephalitis';
-    if (d.includes('scrub') || d.includes('typhus')) return 'Scrub Typhus';
-    return 'Dengue';
-  },
-
-  getDateGroupKey(p, granularity) {
-    let dateObj = null;
-    if (p.parsedDate) {
-      dateObj = new Date(p.parsedDate);
+    if (d.includes('positive') || d.includes('scrub') || d.includes('japanese') || d.includes('encephalitis') || d.includes('je')) {
+      return 'Dengue (Positive)';
     }
-    if (!dateObj || isNaN(dateObj.getTime())) {
-      const y = parseInt(p.year) || 2024;
-      dateObj = new Date(`${p.month || 'Jan'} 1, ${y}`);
-    }
-    if (!dateObj || isNaN(dateObj.getTime())) {
-      dateObj = new Date('2024-01-01');
-    }
-
-    const year = dateObj.getFullYear();
-    const monthIdx = dateObj.getMonth();
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    if (granularity === 'yearly') {
-      return `${year}`;
-    }
-
-    if (granularity === 'monthly') {
-      const monthNum = String(monthIdx + 1).padStart(2, '0');
-      return `${year}-${monthNum} (${monthNames[monthIdx]})`;
-    }
-
-    if (granularity === 'weekly') {
-      const target = new Date(dateObj.valueOf());
-      const dayNr = (dateObj.getDay() + 6) % 7;
-      target.setDate(target.getDate() - dayNr + 3);
-      const firstThursday = target.valueOf();
-      target.setMonth(0, 1);
-      if (target.getDay() !== 4) {
-        target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7));
-      }
-      const weekNum = 1 + Math.round((firstThursday - target.valueOf()) / 604800000);
-      const wStr = String(weekNum).padStart(2, '0');
-      return `${year}-W${wStr}`;
-    }
-
-    // Daily
-    const mNum = String(monthIdx + 1).padStart(2, '0');
-    const dNum = String(dateObj.getDate()).padStart(2, '0');
-    return `${year}-${mNum}-${dNum}`;
+    return 'Dengue'; // Default
   },
 
   // =========================================================================
-  // 1. REPLACEMENT: Multi-Series Smooth Line Chart with Semi-Transparent Fill
+  // 1. Case Trend Over Time (Stacked Bar Chart matching user reference image)
   // =========================================================================
-  renderEpidemicCurve(patients, granularity = 'monthly') {
+  renderEpidemicCurve(patients, granularity = 'daily') {
     this.destroyChart('chart-epicurve');
     const ctx = document.getElementById('chart-epicurve')?.getContext('2d');
     if (!ctx) return;
 
+    let labels = [];
+    let xAxisTitle = '';
+    const categories = ['Dengue', 'Chikungunya', 'Malaria', 'Dengue (Positive)'];
+
+    // Map structure: { labelKey: { Dengue: 0, Chikungunya: 0, Malaria: 0, 'Dengue (Positive)': 0 } }
     const timeMap = {};
 
-    patients.forEach(p => {
-      const key = this.getDateGroupKey(p, granularity);
-      const category = this.getDiseaseCategory(p.disease);
+    if (granularity === 'daily') {
+      xAxisTitle = 'Day of month';
+      labels = Array.from({ length: 31 }, (_, i) => `${i + 1}`);
+      labels.forEach(l => {
+        timeMap[l] = { Dengue: 0, Chikungunya: 0, Malaria: 0, 'Dengue (Positive)': 0 };
+      });
 
-      if (!timeMap[key]) {
-        timeMap[key] = { Dengue: 0, Chikungunya: 0, Malaria: 0, 'Japanese Encephalitis': 0, 'Scrub Typhus': 0 };
+      patients.forEach(p => {
+        let dayNum = null;
+        if (p.parsedDate) {
+          const d = new Date(p.parsedDate);
+          if (!isNaN(d.getTime())) dayNum = String(d.getDate());
+        }
+        if (!dayNum) dayNum = '1';
+
+        const cat = this.getDiseaseCategory(p.disease);
+        if (timeMap[dayNum]) {
+          timeMap[dayNum][cat] = (timeMap[dayNum][cat] || 0) + 1;
+        }
+      });
+    } else if (granularity === 'monthly') {
+      xAxisTitle = 'Month of year';
+      labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      labels.forEach(l => {
+        timeMap[l] = { Dengue: 0, Chikungunya: 0, Malaria: 0, 'Dengue (Positive)': 0 };
+      });
+
+      patients.forEach(p => {
+        let mStr = p.month || 'Jan';
+        const mIdx = labels.findIndex(m => mStr.toLowerCase().startsWith(m.toLowerCase()));
+        const mKey = mIdx !== -1 ? labels[mIdx] : 'Jan';
+        const cat = this.getDiseaseCategory(p.disease);
+        timeMap[mKey][cat] = (timeMap[mKey][cat] || 0) + 1;
+      });
+    } else { // yearly
+      xAxisTitle = 'Year';
+      const yearSet = new Set();
+      patients.forEach(p => {
+        const y = parseInt(p.year) || 2024;
+        yearSet.add(`${y}`);
+      });
+      if (yearSet.size === 0) {
+        yearSet.add('2024'); yearSet.add('2025'); yearSet.add('2026');
       }
-      timeMap[key][category] = (timeMap[key][category] || 0) + 1;
-    });
+      labels = Array.from(yearSet).sort();
+      labels.forEach(l => {
+        timeMap[l] = { Dengue: 0, Chikungunya: 0, Malaria: 0, 'Dengue (Positive)': 0 };
+      });
 
-    const sortedLabels = Object.keys(timeMap).sort();
+      patients.forEach(p => {
+        const yKey = `${parseInt(p.year) || 2024}`;
+        const cat = this.getDiseaseCategory(p.disease);
+        if (timeMap[yKey]) {
+          timeMap[yKey][cat] = (timeMap[yKey][cat] || 0) + 1;
+        }
+      });
+    }
 
-    const dengueData = sortedLabels.map(l => timeMap[l].Dengue);
-    const chikData = sortedLabels.map(l => timeMap[l].Chikungunya);
-    const malariaData = sortedLabels.map(l => timeMap[l].Malaria);
-    const jeData = sortedLabels.map(l => timeMap[l]['Japanese Encephalitis']);
-    const scrubData = sortedLabels.map(l => timeMap[l]['Scrub Typhus']);
+    const dengueData = labels.map(l => timeMap[l]['Dengue']);
+    const chikData = labels.map(l => timeMap[l]['Chikungunya']);
+    const malariaData = labels.map(l => timeMap[l]['Malaria']);
+    const denguePosData = labels.map(l => timeMap[l]['Dengue (Positive)']);
+
+    // Inline DataLabels Plugin to draw segment numerical counts inside bars
+    const inlineBarLabelsPlugin = {
+      id: 'inlineBarLabels',
+      afterDatasetsDraw(chart) {
+        const { ctx } = chart;
+        chart.data.datasets.forEach((dataset, datasetIndex) => {
+          const meta = chart.getDatasetMeta(datasetIndex);
+          if (meta.hidden) return;
+
+          meta.data.forEach((element, index) => {
+            const val = dataset.data[index];
+            if (val && val > 0) {
+              const barY = element.y;
+              const barBase = element.base;
+              const segmentHeight = Math.abs(barBase - barY);
+
+              if (segmentHeight > 10) {
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(val, element.x, barY + (barBase - barY) / 2);
+                ctx.restore();
+              }
+            }
+          });
+        });
+      }
+    };
 
     this.charts['chart-epicurve'] = new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
-        labels: sortedLabels,
+        labels: labels,
         datasets: [
           {
-            label: 'Dengue Surge',
+            label: 'Dengue',
             data: dengueData,
-            borderColor: '#8b5cf6',
-            backgroundColor: 'rgba(139, 92, 246, 0.15)',
-            borderWidth: 2.8,
-            cubicInterpolationMode: 'monotone',
-            fill: true,
-            pointRadius: sortedLabels.length > 30 ? 0 : 3.5,
-            pointHoverRadius: 6
+            backgroundColor: '#c8372d',
+            borderColor: '#b02a21',
+            borderWidth: 1,
+            borderRadius: 2
           },
           {
-            label: 'Chikungunya Surge',
+            label: 'Chikungunya',
             data: chikData,
-            borderColor: '#ec4899',
-            backgroundColor: 'rgba(236, 72, 153, 0.15)',
-            borderWidth: 2.8,
-            cubicInterpolationMode: 'monotone',
-            fill: true,
-            pointRadius: sortedLabels.length > 30 ? 0 : 3.5,
-            pointHoverRadius: 6
+            backgroundColor: '#e67e22',
+            borderColor: '#d35400',
+            borderWidth: 1,
+            borderRadius: 2
           },
           {
-            label: 'Malaria Surge',
+            label: 'Malaria',
             data: malariaData,
-            borderColor: '#06b6d4',
-            backgroundColor: 'rgba(6, 182, 212, 0.12)',
-            borderWidth: 2.2,
-            cubicInterpolationMode: 'monotone',
-            fill: true,
-            pointRadius: sortedLabels.length > 30 ? 0 : 3,
-            pointHoverRadius: 5
+            backgroundColor: '#1e824c',
+            borderColor: '#145a32',
+            borderWidth: 1,
+            borderRadius: 2
           },
           {
-            label: 'Japanese Encephalitis (JE)',
-            data: jeData,
-            borderColor: '#f59e0b',
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-            borderWidth: 2,
-            cubicInterpolationMode: 'monotone',
-            fill: false,
-            pointRadius: sortedLabels.length > 30 ? 0 : 3
-          },
-          {
-            label: 'Scrub Typhus',
-            data: scrubData,
-            borderColor: '#ef4444',
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
-            borderWidth: 2,
-            cubicInterpolationMode: 'monotone',
-            fill: false,
-            pointRadius: sortedLabels.length > 30 ? 0 : 3
+            label: 'Dengue (Positive)',
+            data: denguePosData,
+            backgroundColor: '#7b241c',
+            borderColor: '#641e16',
+            borderWidth: 1,
+            borderRadius: 2
           }
         ]
       },
+      plugins: [inlineBarLabelsPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -211,32 +223,41 @@ const ChartManager = {
         },
         scales: {
           x: {
+            stacked: true,
             grid: { color: 'rgba(255,255,255,0.05)' },
             title: {
               display: true,
-              text: `Timeline (${granularity.toUpperCase()})`,
+              text: xAxisTitle,
               color: '#94a3b8',
-              font: { weight: 'bold', size: 11 }
+              font: { weight: '600', size: 11 }
             }
           },
           y: {
+            stacked: true,
             grid: { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: 'Notified Cases Count', color: '#94a3b8', font: { weight: 'bold', size: 11 } },
-            beginAtZero: true
+            beginAtZero: true,
+            ticks: {
+              precision: 0
+            }
           }
         },
         plugins: {
           legend: {
-            position: 'top',
-            labels: { usePointStyle: true, boxWidth: 8, padding: 14, font: { size: 11, weight: '600' } }
+            position: 'bottom',
+            labels: {
+              usePointStyle: false,
+              boxWidth: 14,
+              boxHeight: 14,
+              padding: 20,
+              font: { size: 12, weight: '600' }
+            }
           },
           tooltip: {
             callbacks: {
-              title: (items) => `Period: ${items[0].label}`,
               footer: (items) => {
                 let sum = 0;
                 items.forEach(i => sum += i.raw);
-                return `Total Vector Notifications: ${sum}`;
+                return `Total Cases: ${sum}`;
               }
             }
           }
@@ -245,9 +266,7 @@ const ChartManager = {
     });
   },
 
-  // =========================================================================
-  // 2. REPLACEMENT: Diverging Population Pyramid (Back-to-Back WHO/CDC Style)
-  // =========================================================================
+  // 2. Demographic Risk Pyramid (Back-to-Back Population Pyramid)
   renderDemographicPyramid(patients) {
     this.destroyChart('chart-demographics');
     const ctx = document.getElementById('chart-demographics')?.getContext('2d');
@@ -264,7 +283,6 @@ const ChartManager = {
       else if (p.sex.toLowerCase().startsWith('f')) femaleCounts[bIdx]++;
     });
 
-    // Male counts plotted as negative values to diverge left
     const maleDiverging = maleCounts.map(c => -c);
 
     this.charts['chart-demographics'] = new Chart(ctx, {
@@ -296,9 +314,7 @@ const ChartManager = {
           x: {
             stacked: false,
             grid: { color: 'rgba(255,255,255,0.05)' },
-            ticks: {
-              callback: (val) => Math.abs(val)
-            },
+            ticks: { callback: (val) => Math.abs(val) },
             title: { display: true, text: '← Male Cases | Female Cases →', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
           },
           y: {
@@ -310,11 +326,7 @@ const ChartManager = {
           legend: { position: 'top' },
           tooltip: {
             callbacks: {
-              label: (item) => {
-                const label = item.dataset.label.split(' ')[0];
-                const count = Math.abs(item.raw);
-                return `${label}: ${count} patient notifications`;
-              }
+              label: (item) => `${item.dataset.label.split(' ')[0]}: ${Math.abs(item.raw)} cases`
             }
           }
         }
@@ -322,9 +334,7 @@ const ChartManager = {
     });
   },
 
-  // =========================================================================
-  // 3. REPLACEMENT: Facility-Level Case Burden (Stacked Breakdown by Disease)
-  // =========================================================================
+  // 3. Facility Burden
   renderFacilityBurden(patients) {
     this.destroyChart('chart-facilities');
     const ctx = document.getElementById('chart-facilities')?.getContext('2d');
@@ -334,12 +344,8 @@ const ChartManager = {
     patients.forEach(p => {
       const hosp = p.hospital || 'Unspecified';
       const cat = this.getDiseaseCategory(p.disease);
-      if (!hospMap[hosp]) {
-        hospMap[hosp] = { Dengue: 0, Chikungunya: 0, Malaria: 0, Total: 0 };
-      }
-      if (cat === 'Dengue') hospMap[hosp].Dengue++;
-      else if (cat === 'Chikungunya') hospMap[hosp].Chikungunya++;
-      else if (cat === 'Malaria') hospMap[hosp].Malaria++;
+      if (!hospMap[hosp]) hospMap[hosp] = { Dengue: 0, Chikungunya: 0, Malaria: 0, 'Dengue (Positive)': 0, Total: 0 };
+      hospMap[hosp][cat] = (hospMap[hosp][cat] || 0) + 1;
       hospMap[hosp].Total++;
     });
 
@@ -348,33 +354,17 @@ const ChartManager = {
     const dengueData = sorted.map(s => s[1].Dengue);
     const chikData = sorted.map(s => s[1].Chikungunya);
     const malariaData = sorted.map(s => s[1].Malaria);
+    const posData = sorted.map(s => s[1]['Dengue (Positive)']);
 
     this.charts['chart-facilities'] = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [
-          {
-            label: 'Dengue',
-            data: dengueData,
-            backgroundColor: 'rgba(139, 92, 246, 0.85)',
-            borderColor: '#8b5cf6',
-            borderRadius: 4
-          },
-          {
-            label: 'Chikungunya',
-            data: chikData,
-            backgroundColor: 'rgba(236, 72, 153, 0.85)',
-            borderColor: '#ec4899',
-            borderRadius: 4
-          },
-          {
-            label: 'Malaria',
-            data: malariaData,
-            backgroundColor: 'rgba(6, 182, 212, 0.85)',
-            borderColor: '#06b6d4',
-            borderRadius: 4
-          }
+          { label: 'Dengue', data: dengueData, backgroundColor: '#c8372d', borderRadius: 4 },
+          { label: 'Chikungunya', data: chikData, backgroundColor: '#e67e22', borderRadius: 4 },
+          { label: 'Malaria', data: malariaData, backgroundColor: '#1e824c', borderRadius: 4 },
+          { label: 'Dengue (Positive)', data: posData, backgroundColor: '#7b241c', borderRadius: 4 }
         ]
       },
       options: {
@@ -382,28 +372,15 @@ const ChartManager = {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
-          x: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Total Admitted / Reported Cases', color: '#94a3b8' } },
+          x: { stacked: true, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Total Reported Cases', color: '#94a3b8' } },
           y: { stacked: true, grid: { display: false } }
         },
-        plugins: {
-          legend: { position: 'top' },
-          tooltip: {
-            callbacks: {
-              footer: (items) => {
-                let sum = 0;
-                items.forEach(i => sum += i.raw);
-                return `Facility Total: ${sum} cases`;
-              }
-            }
-          }
-        }
+        plugins: { legend: { position: 'top' } }
       }
     });
   },
 
-  // =========================================================================
-  // 4. REPLACEMENT: Spatial-Temporal Zone Outbreak Burden Heatmap Matrix
-  // =========================================================================
+  // 4. Spatial-Temporal Zone Outbreak Burden Matrix
   renderZoneMatrixHeatmap(patients) {
     this.destroyChart('chart-zones');
     const ctx = document.getElementById('chart-zones')?.getContext('2d');
@@ -412,7 +389,6 @@ const ChartManager = {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const zones = Array.from({ length: 10 }, (_, i) => `Zone ${i + 1}`);
 
-    // Build 10x12 matrix counts
     const matrix = {};
     zones.forEach(z => {
       matrix[z] = {};
@@ -424,13 +400,11 @@ const ChartManager = {
       let mStr = p.month || 'Jan';
       const mIdx = months.findIndex(m => mStr.toLowerCase().startsWith(m.toLowerCase()));
       const mKey = mIdx !== -1 ? months[mIdx] : 'Jan';
-
       if (matrix[zKey] && matrix[zKey][mKey] !== undefined) {
         matrix[zKey][mKey]++;
       }
     });
 
-    // Flatten into Chart.js bubble / heatmap dataset
     const bubbleData = [];
     zones.forEach((z, zIdx) => {
       months.forEach((m, mIdx) => {
@@ -454,20 +428,13 @@ const ChartManager = {
           data: bubbleData,
           backgroundColor: (ctx) => {
             const val = ctx.raw?.v || 0;
-            if (val > 50) return 'rgba(239, 68, 68, 0.85)'; // Red surge
-            if (val > 25) return 'rgba(249, 115, 22, 0.85)'; // Orange high
-            if (val > 10) return 'rgba(234, 179, 8, 0.85)'; // Yellow medium
-            if (val > 5) return 'rgba(13, 148, 136, 0.85)'; // Teal moderate
-            return 'rgba(59, 130, 246, 0.65)'; // Blue low
+            if (val > 50) return 'rgba(200, 55, 45, 0.85)';
+            if (val > 25) return 'rgba(230, 126, 34, 0.85)';
+            if (val > 10) return 'rgba(241, 196, 15, 0.85)';
+            return 'rgba(30, 130, 76, 0.75)';
           },
-          borderColor: (ctx) => {
-            const val = ctx.raw?.v || 0;
-            if (val > 50) return '#ef4444';
-            if (val > 25) return '#f97316';
-            if (val > 10) return '#eab308';
-            return '#3b82f6';
-          },
-          borderWidth: 1.5
+          borderColor: '#ffffff',
+          borderWidth: 1
         }]
       },
       options: {
@@ -479,10 +446,7 @@ const ChartManager = {
             position: 'bottom',
             min: -0.5,
             max: 11.5,
-            ticks: {
-              stepSize: 1,
-              callback: (val) => months[val] || ''
-            },
+            ticks: { stepSize: 1, callback: (val) => months[val] || '' },
             grid: { color: 'rgba(255,255,255,0.05)' },
             title: { display: true, text: 'Months of the Year', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
           },
@@ -490,10 +454,7 @@ const ChartManager = {
             type: 'linear',
             min: -0.5,
             max: 9.5,
-            ticks: {
-              stepSize: 1,
-              callback: (val) => zones[val] || ''
-            },
+            ticks: { stepSize: 1, callback: (val) => zones[val] || '' },
             grid: { color: 'rgba(255,255,255,0.05)' },
             title: { display: true, text: 'NMC Municipal Zones (1-10)', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
           }
@@ -502,12 +463,7 @@ const ChartManager = {
           legend: { display: false },
           tooltip: {
             callbacks: {
-              label: (item) => {
-                const raw = item.raw;
-                const mName = months[raw.x];
-                const zName = zones[raw.y];
-                return `${zName} in ${mName}: ${raw.v} cases notified`;
-              }
+              label: (item) => `${zones[item.raw.y]} in ${months[item.raw.x]}: ${item.raw.v} cases`
             }
           }
         }
@@ -515,7 +471,7 @@ const ChartManager = {
     });
   },
 
-  // 5. High-Risk Area Match Ratio (Sheet 2 Correlation)
+  // 5. High Risk Correlation
   renderHighRiskCorrelation(patients) {
     this.destroyChart('chart-highrisk');
     const ctx = document.getElementById('chart-highrisk')?.getContext('2d');
@@ -533,11 +489,8 @@ const ChartManager = {
         labels: ['Sheet 2 High-Risk Hotspot Match', 'Other City Locality'],
         datasets: [{
           data: [matched, nonMatched],
-          backgroundColor: [
-            'rgba(239, 68, 68, 0.85)',
-            'rgba(59, 130, 246, 0.5)'
-          ],
-          borderColor: ['#ef4444', '#3b82f6'],
+          backgroundColor: ['#c8372d', '#1e824c'],
+          borderColor: ['#b02a21', '#145a32'],
           borderWidth: 2
         }]
       },
@@ -550,7 +503,7 @@ const ChartManager = {
     });
   },
 
-  // 6. Age Group Susceptibility by Disease
+  // 6. Age Group Susceptibility
   renderAgeDiseaseVulnerability(patients) {
     this.destroyChart('chart-vulnerability');
     const ctx = document.getElementById('chart-vulnerability')?.getContext('2d');
@@ -576,27 +529,9 @@ const ChartManager = {
       data: {
         labels: ageGroups,
         datasets: [
-          {
-            label: 'Chikungunya',
-            data: chikData,
-            backgroundColor: 'rgba(236, 72, 153, 0.25)',
-            borderColor: '#ec4899',
-            pointBackgroundColor: '#ec4899'
-          },
-          {
-            label: 'Dengue',
-            data: dengData,
-            backgroundColor: 'rgba(139, 92, 246, 0.25)',
-            borderColor: '#8b5cf6',
-            pointBackgroundColor: '#8b5cf6'
-          },
-          {
-            label: 'Malaria',
-            data: malariaData,
-            backgroundColor: 'rgba(6, 182, 212, 0.25)',
-            borderColor: '#06b6d4',
-            pointBackgroundColor: '#06b6d4'
-          }
+          { label: 'Dengue', data: dengData, backgroundColor: 'rgba(200, 55, 45, 0.25)', borderColor: '#c8372d' },
+          { label: 'Chikungunya', data: chikData, backgroundColor: 'rgba(230, 126, 34, 0.25)', borderColor: '#e67e22' },
+          { label: 'Malaria', data: malariaData, backgroundColor: 'rgba(30, 130, 76, 0.25)', borderColor: '#1e824c' }
         ]
       },
       options: {
@@ -605,8 +540,7 @@ const ChartManager = {
         scales: {
           r: {
             angleLines: { color: 'rgba(255,255,255,0.1)' },
-            grid: { color: 'rgba(255,255,255,0.1)' },
-            pointLabels: { font: { size: 11, weight: 'bold' } }
+            grid: { color: 'rgba(255,255,255,0.1)' }
           }
         },
         plugins: { legend: { position: 'top' } }
