@@ -258,25 +258,24 @@
       <!-- Section 2: Visualizations Grid (Row 1) -->
       <section class="dashboard-grid-2">
         
-        <!-- Chart 1: Case Trend Over Time (Matching User Reference Image) -->
+        <!-- Chart 1: 1. Epidemic Curve & Temporal Surge (Line Chart with Area Fill matching user screenshot) -->
         <div class="chart-card">
           
-          <!-- Top Granularity Pill Buttons (By Day, By Month, By Year) -->
-          <div class="case-trend-pill-container" style="margin-bottom: 0.75rem;">
-            <div class="pill-toggle-group" id="epicurve-granularity-toggle">
-              <button class="pill-btn active" data-granularity="daily">By Day</button>
-              <button class="pill-btn" data-granularity="monthly">By Month</button>
-              <button class="pill-btn" data-granularity="yearly">By Year</button>
-            </div>
-          </div>
-
           <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center;">
             <div class="card-title-group">
-              <i class="fa-solid fa-chart-simple card-title-icon"></i>
+              <i class="fa-solid fa-chart-line card-title-icon"></i>
               <div>
-                <h3 class="card-title">Case Trend Over Time</h3>
-                <p class="card-subtitle">Notified cases across the selected period, by disease</p>
+                <h3 class="card-title">1. Epidemic Curve &amp; Temporal Surge</h3>
+                <p class="card-subtitle">Multi-series smooth line trend with area fill (Dengue, Chikungunya, Malaria)</p>
               </div>
+            </div>
+
+            <!-- Granularity Buttons (Daily, Weekly, Monthly, Yearly) -->
+            <div class="pill-toggle-group" id="epicurve-granularity-toggle">
+              <button class="pill-btn active" data-granularity="daily">Daily</button>
+              <button class="pill-btn" data-granularity="weekly">Weekly</button>
+              <button class="pill-btn" data-granularity="monthly">Monthly</button>
+              <button class="pill-btn" data-granularity="yearly">Yearly</button>
             </div>
           </div>
 
