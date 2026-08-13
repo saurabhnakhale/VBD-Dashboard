@@ -1,16 +1,21 @@
 /**
  * WeatherManager.js - Live Environmental & Vector Risk Surveillance for Nagpur
  * Fetches real-time ambient temperature, humidity, and rainfall from Open-Meteo API.
+ * Structures cards with weather-card-body for side-by-side inline value + status badge alignment.
  */
 
 (function () {
-  // 1. Inject Live Weather Grid HTML above existing KPI cards
+  // 1. Inject Live Weather Grid HTML into Top Wrapper (Order 1)
   function attachToDashboard() {
-    const mainElement = document.querySelector('main');
-    if (!mainElement) return;
-
     // Avoid duplicate injection
     if (document.getElementById('vbd-weather-container')) return;
+
+    let targetContainer = document.getElementById('weather-slot');
+    if (!targetContainer) {
+      targetContainer = document.querySelector('.dashboard-top-wrapper') || document.querySelector('main');
+    }
+
+    if (!targetContainer) return;
 
     const weatherSection = document.createElement('section');
     weatherSection.className = 'weather-kpi-grid vbd-weather-grid';
@@ -21,9 +26,11 @@
           <span>🌡️ Nagpur Temperature</span>
           <span title="Live ambient temperature for Nagpur Municipal Area">ⓘ</span>
         </div>
-        <div class="weather-card-value vbd-weather-value" id="vbd-temp">-- °C</div>
-        <div class="vbd-weather-footer">
-          <span class="vbd-badge vbd-badge-live" id="vbd-time">● Live • Connecting...</span>
+        <div class="weather-card-body">
+          <div class="weather-card-value vbd-weather-value" id="vbd-temp">-- °C</div>
+          <div class="vbd-weather-footer">
+            <span class="status-badge vbd-badge vbd-badge-live" id="vbd-time">● Live • Connecting...</span>
+          </div>
         </div>
       </div>
 
@@ -32,9 +39,11 @@
           <span>💧 Relative Humidity</span>
           <span title="Relative humidity >60% accelerates vector breeding">ⓘ</span>
         </div>
-        <div class="weather-card-value vbd-weather-value" id="vbd-humidity">-- %</div>
-        <div class="vbd-weather-footer">
-          <span class="vbd-badge vbd-badge-warning" id="vbd-risk">↑ Vector-Borne Risk Factor</span>
+        <div class="weather-card-body">
+          <div class="weather-card-value vbd-weather-value" id="vbd-humidity">-- %</div>
+          <div class="vbd-weather-footer">
+            <span class="status-badge vbd-badge vbd-badge-warning" id="vbd-risk">↑ Vector-Borne Risk Factor</span>
+          </div>
         </div>
       </div>
 
@@ -43,14 +52,20 @@
           <span>🌧️ Precipitation / Rainfall</span>
           <span title="Current precipitation index">ⓘ</span>
         </div>
-        <div class="weather-card-value vbd-weather-value" id="vbd-rainfall">-- mm</div>
-        <div class="vbd-weather-footer">
-          <span class="vbd-badge vbd-badge-info">↑ Waterlogging Index</span>
+        <div class="weather-card-body">
+          <div class="weather-card-value vbd-weather-value" id="vbd-rainfall">-- mm</div>
+          <div class="vbd-weather-footer">
+            <span class="status-badge vbd-badge vbd-badge-info">↑ Waterlogging Index</span>
+          </div>
         </div>
       </div>
     `;
 
-    mainElement.insertBefore(weatherSection, mainElement.firstChild);
+    if (targetContainer.id === 'weather-slot') {
+      targetContainer.appendChild(weatherSection);
+    } else {
+      targetContainer.insertBefore(weatherSection, targetContainer.firstChild);
+    }
   }
 
   // 2. Fetch Live Weather Data from Open-Meteo API
@@ -92,10 +107,10 @@
       if (riskBadge) {
         if (current.relative_humidity_2m >= 60 && current.temperature_2m >= 22 && current.temperature_2m <= 32) {
           riskBadge.textContent = '↑ High Vector Breeding Risk';
-          riskBadge.className = 'vbd-badge vbd-badge-danger';
+          riskBadge.className = 'status-badge vbd-badge vbd-badge-danger';
         } else {
           riskBadge.textContent = '↑ Vector-Borne Risk Factor';
-          riskBadge.className = 'vbd-badge vbd-badge-warning';
+          riskBadge.className = 'status-badge vbd-badge vbd-badge-warning';
         }
       }
     } catch (err) {

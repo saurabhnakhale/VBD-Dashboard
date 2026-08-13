@@ -51,80 +51,86 @@
 
     </header>
 
-    <!-- Slicers & Dynamic Filter Toolbar -->
-    <section class="filter-bar">
+    <!-- Top Wrapper (Weather Grid at Order 1, Slicers & Filter Bar at Order 2) -->
+    <div class="dashboard-top-wrapper">
       
-      <!-- 1. Search Slicer (Patient's Name, Hospital, Address ONLY) -->
-      <div class="filter-group">
-        <label class="filter-label" for="filter-search"><i class="fa-solid fa-magnifying-glass"></i> Search</label>
-        <input type="text" id="filter-search" class="filter-control" placeholder="Search Patient Name, Hospital, Address...">
-      </div>
+      <!-- Weather KPI Grid slot (populated by weatherManager.js at order: 1) -->
+      <div id="weather-slot"></div>
 
-      <!-- 2. Disease Slicer -->
-      <div class="filter-group">
-        <label class="filter-label" for="filter-disease"><i class="fa-solid fa-virus"></i> Disease</label>
-        <select id="filter-disease" class="filter-control">
-          <option value="ALL">All Diseases</option>
-        </select>
-      </div>
-
-      <!-- 3. Zone Slicer -->
-      <div class="filter-group">
-        <label class="filter-label" for="filter-zone"><i class="fa-solid fa-map-location-dot"></i> Zone</label>
-        <select id="filter-zone" class="filter-control">
-          <option value="ALL">All Zones (1-10)</option>
-        </select>
-      </div>
-
-      <!-- 4. Month Slicer -->
-      <div class="filter-group">
-        <label class="filter-label" for="filter-month"><i class="fa-solid fa-calendar-days"></i> Month</label>
-        <select id="filter-month" class="filter-control">
-          <option value="ALL">All Months</option>
-        </select>
-      </div>
-
-      <!-- 5. Year Slicer (Replaces Prabhag & Age Group) -->
-      <div class="filter-group">
-        <label class="filter-label" for="filter-year"><i class="fa-solid fa-calendar"></i> Year</label>
-        <select id="filter-year" class="filter-control">
-          <option value="ALL">All Years</option>
-        </select>
-      </div>
-
-      <!-- 6. Date Timeline Selector (Calendar Range) -->
-      <div class="filter-group filter-group-date">
-        <label class="filter-label" for="filter-start-date"><i class="fa-solid fa-calendar-week"></i> Date Timeline</label>
-        <div class="date-range-inputs">
-          <input type="date" id="filter-start-date" class="filter-control date-control" title="Start Date">
-          <span class="date-sep">to</span>
-          <input type="date" id="filter-end-date" class="filter-control date-control" title="End Date">
+      <!-- Slicers & Dynamic Filter Toolbar (order: 2) -->
+      <section class="filter-bar-container filter-bar">
+        
+        <!-- 1. Search Slicer (Patient's Name, Hospital, Address ONLY) -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-search"><i class="fa-solid fa-magnifying-glass"></i> Search</label>
+          <input type="text" id="filter-search" class="filter-control" placeholder="Search Patient Name, Hospital, Address...">
         </div>
-      </div>
 
-      <!-- 7. Facility Type Slicer (Hospital Signage) -->
-      <div class="filter-group">
-        <label class="filter-label" for="filter-facility"><i class="fa-solid fa-hospital"></i> Facility Type</label>
-        <select id="filter-facility" class="filter-control">
-          <option value="ALL">All Facilities</option>
-          <option value="Urban Primary Health Center (UPHC)">Urban Primary Health Centers (UPHC)</option>
-          <option value="Tertiary Government Hospital">Tertiary Government Hospitals</option>
-          <option value="Private Hospital / Lab">Private Hospitals &amp; Labs</option>
-        </select>
-      </div>
+        <!-- 2. Disease Slicer -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-disease"><i class="fa-solid fa-virus"></i> Disease</label>
+          <select id="filter-disease" class="filter-control">
+            <option value="ALL">All Diseases</option>
+          </select>
+        </div>
 
-      <!-- 8. Compact Reset Button -->
-      <div class="filter-group filter-group-reset">
-        <button id="filter-reset-btn" class="filter-reset-btn btn-sm">
-          <i class="fa-solid fa-rotate-left"></i> Reset
-        </button>
-      </div>
-    </section>
+        <!-- 3. Zone Slicer -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-zone"><i class="fa-solid fa-map-location-dot"></i> Zone</label>
+          <select id="filter-zone" class="filter-control">
+            <option value="ALL">All Zones (1-10)</option>
+          </select>
+        </div>
+
+        <!-- 4. Month Slicer -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-month"><i class="fa-solid fa-calendar-days"></i> Month</label>
+          <select id="filter-month" class="filter-control">
+            <option value="ALL">All Months</option>
+          </select>
+        </div>
+
+        <!-- 5. Year Slicer (Replaces Prabhag & Age Group) -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-year"><i class="fa-solid fa-calendar"></i> Year</label>
+          <select id="filter-year" class="filter-control">
+            <option value="ALL">All Years</option>
+          </select>
+        </div>
+
+        <!-- 6. Date Timeline Selector (Calendar Range) -->
+        <div class="filter-group filter-group-date">
+          <label class="filter-label" for="filter-start-date"><i class="fa-solid fa-calendar-week"></i> Date Timeline</label>
+          <div class="date-range-inputs">
+            <input type="date" id="filter-start-date" class="filter-control date-control" title="Start Date">
+            <span class="date-sep">to</span>
+            <input type="date" id="filter-end-date" class="filter-control date-control" title="End Date">
+          </div>
+        </div>
+
+        <!-- 7. Facility Type Slicer (Hospital Signage) -->
+        <div class="filter-group">
+          <label class="filter-label" for="filter-facility"><i class="fa-solid fa-hospital"></i> Facility Type</label>
+          <select id="filter-facility" class="filter-control">
+            <option value="ALL">All Facilities</option>
+            <option value="Urban Primary Health Center (UPHC)">Urban Primary Health Centers (UPHC)</option>
+            <option value="Tertiary Government Hospital">Tertiary Government Hospitals</option>
+            <option value="Private Hospital / Lab">Private Hospitals &amp; Labs</option>
+          </select>
+        </div>
+
+        <!-- 8. Compact Reset Button -->
+        <div class="filter-group filter-group-reset">
+          <button id="filter-reset-btn" class="filter-reset-btn btn-sm">
+            <i class="fa-solid fa-rotate-left"></i> Reset
+          </button>
+        </div>
+      </section>
+
+    </div>
 
     <!-- Main Dashboard Workspace -->
     <main class="dashboard-body">
-
-      <!-- Live Environmental Weather Section (Auto-injected by weatherManager.js) -->
 
       <!-- Section 1: 8 Healthcare KPIs (Single Line, Medium Bold Font) -->
       <section class="disease-kpi-row kpi-grid-8">
