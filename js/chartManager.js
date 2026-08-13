@@ -1,6 +1,6 @@
 /**
  * ChartManager.js - Manages all Chart.js visualizations for the dashboard.
- * Chart 4: Dynamic Zone & Prabhag Case Distribution with segment counts AND total numbers on top of bars.
+ * Chart 5: Spatial High-Risk Locality vs. Disease Matrix Heatmap with Action Banner.
  */
 
 const ChartManager = {
@@ -353,9 +353,7 @@ const ChartManager = {
     });
   },
 
-  // =========================================================================
-  // 4. INTERACTIVE ZONE & PRABHAG-WISE DISEASE DISTRIBUTION CHART
-  // =========================================================================
+  // 4. Interactive Zone & Prabhag Case Distribution
   renderZonePrabhagDistribution(patients) {
     this.destroyChart('chart-zones');
     const canvas = document.getElementById('chart-zones');
@@ -383,9 +381,6 @@ const ChartManager = {
     };
 
     if (this.currentZoneView === 'zone') {
-      // ---------------------------------------------------------------------
-      // PRIMARY VIEW: Zone Level (Zones 1 - 10)
-      // ---------------------------------------------------------------------
       if (titleElem) titleElem.textContent = '4. Zone & Prabhag Case Distribution';
       if (subtitleElem) subtitleElem.textContent = 'Stacked disease breakdown across NMC Municipal Zones 1–10 (Click any Zone bar to drill down into Prabhags)';
 
@@ -414,9 +409,6 @@ const ChartManager = {
         };
       });
 
-      // Canvas plugin to render:
-      // 1. Inside bar segment disease count numbers
-      // 2. Bold total cases count directly above each stacked bar
       const inlineBarLabelsPlugin = {
         id: 'zoneBarLabels',
         afterDatasetsDraw(chart) {
@@ -440,7 +432,6 @@ const ChartManager = {
                 const barBase = element.base;
                 const segmentHeight = Math.abs(barBase - barY);
 
-                // Draw segment disease count if segment height > 6px
                 if (segmentHeight > 6) {
                   ctx.save();
                   ctx.fillStyle = '#ffffff';
@@ -454,7 +445,6 @@ const ChartManager = {
             });
           });
 
-          // Draw Total Cases count on top of each bar
           chart.data.labels.forEach((label, index) => {
             const totalVal = totalsPerX[index];
             const topY = topYPerX[index];
@@ -535,9 +525,6 @@ const ChartManager = {
       });
 
     } else {
-      // ---------------------------------------------------------------------
-      // SECONDARY VIEW: Prabhag Level Drill-Down
-      // ---------------------------------------------------------------------
       const isAll = this.selectedZoneForPrabhag === 'ALL';
       const zoneFilterVal = isAll ? null : parseInt(this.selectedZoneForPrabhag, 10);
       const selectedZoneName = isAll ? 'All City Zones' : `Zone ${this.selectedZoneForPrabhag}`;
@@ -692,35 +679,137 @@ const ChartManager = {
     }
   },
 
-  // 5. High Risk Correlation
+  // =========================================================================
+  // 5. SPATIAL HIGH-RISK LOCALITY VS. DISEASE MATRIX HEATMAP (REPLACES CHART 5)
+  // =========================================================================
   renderHighRiskCorrelation(patients) {
-    this.destroyChart('chart-highrisk');
-    const ctx = document.getElementById('chart-highrisk')?.getContext('2d');
-    if (!ctx) return;
+    const container = document.getElementById('highrisk-heatmap-grid');
+    if (!container) return;
 
-    let matched = 0, nonMatched = 0;
+    const locMap = {};
+
     patients.forEach(p => {
-      if (p.isHighRiskMatch) matched++;
-      else nonMatched++;
+      let loc = p.address ? String(p.address).trim() : '';
+      if (!loc || loc.length < 3) {
+        loc = p.prabhag ? `Prabhag ${p.prabhag}` : `Zone ${p.zoneNum || 1}`;
+      }
+
+      // Extract core locality name
+      loc = loc.split(',')[0].split('-')[0].trim();
+      if (!loc || loc.length < 3) loc = `Zone ${p.zoneNum || 1}`;
+
+      if (!locMap[loc]) {
+        locMap[loc] = { Dengue: 0, Chikungunya: 0, Malaria: 0, 'Scrub Typhus': 0, Total: 0 };
+      }
+
+      const dStr = (p.disease || '').toLowerCase();
+      if (dStr.includes('chikungunya') || dStr.includes('chikun')) {
+        locMap[loc]['Chikungunya']++;
+      } else if (dStr.includes('malaria')) {
+        locMap[loc]['Malaria']++;
+      } else if (dStr.includes('scrub') || dStr.includes('typhus')) {
+        locMap[loc]['Scrub Typhus']++;
+      } else {
+        locMap[loc]['Dengue']++;
+      }
+
+      locMap[loc].Total++;
     });
 
-    this.charts['chart-highrisk'] = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Sheet 2 High-Risk Hotspot Match', 'Other City Locality'],
-        datasets: [{
-          data: [matched, nonMatched],
-          backgroundColor: ['#c8372d', '#1e824c'],
-          borderColor: ['#b02a21', '#145a32'],
-          borderWidth: 2
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { legend: { position: 'bottom' } },
-        cutout: '65%'
-      }
+    // Top 8 - 10 localities by total case volume
+    const topLocalities = Object.entries(locMap)
+      .sort((a, b) => b[1].Total - a[1].Total)
+      .slice(0, 10);
+
+    const diseases = ['Dengue', 'Chikungunya', 'Malaria', 'Scrub Typhus'];
+
+    // Color intensity scale: 0-5 navy/slate, 15-30 orange, 50+ vivid crimson/purple
+    const getCellColor = (val) => {
+      if (val === 0) return { bg: '#0f172a', text: '#475569' };
+      if (val <= 5) return { bg: 'rgba(30, 41, 59, 0.9)', text: '#cbd5e1' };
+      if (val <= 14) return { bg: 'rgba(14, 116, 144, 0.85)', text: '#ffffff' };
+      if (val <= 30) return { bg: 'rgba(234, 88, 12, 0.9)', text: '#ffffff' };
+      if (val <= 49) return { bg: 'rgba(225, 29, 72, 0.95)', text: '#ffffff' };
+      return { bg: 'rgba(147, 51, 234, 0.95)', text: '#ffffff' };
+    };
+
+    const getActionText = (loc, dis, val) => {
+      if (val === 0) return `Low surveillance activity for ${dis} in ${loc}. Maintain routine vector monitoring.`;
+      if (dis === 'Dengue') return `🚨 High Dengue Risk in ${loc} (${val} cases): Initiate targeted anti-larval chemical spray & indoor fogging.`;
+      if (dis === 'Chikungunya') return `⚠️ Chikungunya Surge in ${loc} (${val} cases): Deploy door-to-door fever surveillance & vector breeding control.`;
+      if (dis === 'Malaria') return `🔬 Malaria Alert in ${loc} (${val} cases): Execute thermal fogging, blood slide collection & water chlorination.`;
+      return `🐛 Scrub Typhus Alert in ${loc} (${val} cases): Conduct mite vector control, rodent surveillance & sanitation drive.`;
+    };
+
+    let tableHtml = `
+      <div class="locality-heatmap-wrapper">
+        <div id="locality-action-banner" class="locality-action-banner">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span id="locality-action-text">Hover over any matrix cell to view recommended epidemiological field response.</span>
+        </div>
+
+        <table class="locality-heatmap-table">
+          <thead>
+            <tr>
+              <th class="loc-head-th">High-Risk Locality / Prabhag</th>
+              <th>🦟 Dengue</th>
+              <th>🦠 Chikungunya</th>
+              <th>🔬 Malaria</th>
+              <th>🐛 Scrub Typhus</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+    `;
+
+    topLocalities.forEach(([locName, data]) => {
+      tableHtml += `<tr>`;
+      tableHtml += `<td class="loc-name-cell"><i class="fa-solid fa-location-dot" style="color: #6366f1; margin-right: 6px;"></i>${locName}</td>`;
+
+      diseases.forEach(dis => {
+        const count = data[dis] || 0;
+        const color = getCellColor(count);
+        const action = getActionText(locName, dis, count);
+
+        tableHtml += `
+          <td class="heat-cell" 
+              style="background: ${color.bg}; color: ${color.text};"
+              data-action="${action}"
+              data-loc="${locName}"
+              data-dis="${dis}"
+              data-count="${count}">
+            ${count}
+          </td>
+        `;
+      });
+
+      tableHtml += `<td class="loc-total-cell">${data.Total}</td>`;
+      tableHtml += `</tr>`;
+    });
+
+    tableHtml += `
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    container.innerHTML = tableHtml;
+
+    // Attach hover listeners for action banner
+    const cells = container.querySelectorAll('.heat-cell');
+    const bannerText = document.getElementById('locality-action-text');
+
+    cells.forEach(cell => {
+      cell.addEventListener('mouseenter', () => {
+        if (bannerText) {
+          bannerText.innerHTML = cell.dataset.action;
+        }
+      });
+      cell.addEventListener('mouseleave', () => {
+        if (bannerText) {
+          bannerText.textContent = 'Hover over any matrix cell to view recommended epidemiological field response.';
+        }
+      });
     });
   },
 
@@ -751,7 +840,7 @@ const ChartManager = {
         labels: ageGroups,
         datasets: [
           { label: 'Dengue', data: dengData, backgroundColor: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7' },
-          { label: 'Chikungunya', label: 'Chikungunya', data: chikData, backgroundColor: 'rgba(236, 72, 153, 0.25)', borderColor: '#ec4899' },
+          { label: 'Chikungunya', data: chikData, backgroundColor: 'rgba(236, 72, 153, 0.25)', borderColor: '#ec4899' },
           { label: 'Malaria', data: malariaData, backgroundColor: 'rgba(6, 182, 212, 0.25)', borderColor: '#06b6d4' }
         ]
       },
