@@ -1,6 +1,6 @@
 /**
  * ChartManager.js - Manages 6 advanced Chart.js visualizations for the dashboard.
- * Chart 4: Zone & Prabhag-Wise Case Distribution Graph.
+ * Chart 4: Zone & Prabhag Case Distribution Stacked Bar Chart with Inline Segment Labels.
  */
 
 const ChartManager = {
@@ -287,41 +287,77 @@ const ChartManager = {
   },
 
   // =========================================================================
-  // 4. REPLACEMENT: Zone & Prabhag-Wise Case Distribution Graph
+  // 4. REPLACEMENT: Zone & Prabhag Case Distribution Stacked Bar Chart
   // =========================================================================
   renderZonePrabhagDistribution(patients) {
     this.destroyChart('chart-zones');
     const ctx = document.getElementById('chart-zones')?.getContext('2d');
     if (!ctx) return;
 
+    const zones = Array.from({ length: 10 }, (_, i) => `Zone ${i + 1}`);
+
+    // Map: { "Zone 1": { "Prabhag 12": count, ... }, ... }
     const zoneMap = {};
-    for (let i = 1; i <= 10; i++) {
-      zoneMap[`Zone ${i}`] = { total: 0, prabhags: {} };
-    }
+    zones.forEach(z => zoneMap[z] = {});
+
+    const globalPrabhagCounts = {};
 
     patients.forEach(p => {
       const zKey = `Zone ${p.zoneNum || 10}`;
-      let prab = p.prabhag ? (String(p.prabhag).toLowerCase().includes('prabhag') ? p.prabhag : `Prabhag ${p.prabhag}`) : 'Unspecified';
-
-      if (!zoneMap[zKey]) {
-        zoneMap[zKey] = { total: 0, prabhags: {} };
+      let prabRaw = p.prabhag ? String(p.prabhag).trim() : 'Unspecified';
+      if (!prabRaw.toLowerCase().includes('prabhag') && prabRaw !== 'Unspecified') {
+        prabRaw = `Prabhag ${prabRaw}`;
       }
-      zoneMap[zKey].total++;
-      zoneMap[zKey].prabhags[prab] = (zoneMap[zKey].prabhags[prab] || 0) + 1;
+
+      if (!zoneMap[zKey]) zoneMap[zKey] = {};
+      zoneMap[zKey][prabRaw] = (zoneMap[zKey][prabRaw] || 0) + 1;
+      globalPrabhagCounts[prabRaw] = (globalPrabhagCounts[prabRaw] || 0) + 1;
     });
 
-    const labels = Object.keys(zoneMap);
-    const totalData = labels.map(z => zoneMap[z].total);
+    // Extract top 8 Prabhags city-wide for color legend
+    const topPrabhags = Object.entries(globalPrabhagCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(entry => entry[0]);
 
-    // Vibrant distinct colors for each Zone (Zones 1 to 10)
-    const zoneColors = [
+    const palette = [
       '#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b',
-      '#ef4444', '#06b6d4', '#6366f1', '#14b8a6', '#f43f5e'
+      '#ef4444', '#06b6d4', '#6366f1', '#14b8a6'
     ];
 
-    // Custom DataLabels Plugin to print case totals above each Zone bar
-    const zoneLabelsPlugin = {
-      id: 'zoneLabels',
+    const datasets = [];
+
+    topPrabhags.forEach((pName, idx) => {
+      const data = zones.map(z => zoneMap[z][pName] || 0);
+      datasets.push({
+        label: pName,
+        data: data,
+        backgroundColor: palette[idx % palette.length],
+        borderRadius: 3
+      });
+    });
+
+    // Group remaining into "Other Prabhags"
+    const otherData = zones.map(z => {
+      let otherSum = 0;
+      Object.entries(zoneMap[z] || {}).forEach(([pName, cnt]) => {
+        if (!topPrabhags.includes(pName)) otherSum += cnt;
+      });
+      return otherSum;
+    });
+
+    if (otherData.some(v => v > 0)) {
+      datasets.push({
+        label: 'Other Prabhags',
+        data: otherData,
+        backgroundColor: '#64748b',
+        borderRadius: 3
+      });
+    }
+
+    // Custom DataLabels plugin to draw numerical values inside bar segments
+    const prabhagBarLabelsPlugin = {
+      id: 'prabhagBarLabels',
       afterDatasetsDraw(chart) {
         const { ctx } = chart;
         chart.data.datasets.forEach((dataset, datasetIndex) => {
@@ -330,14 +366,20 @@ const ChartManager = {
 
           meta.data.forEach((element, index) => {
             const val = dataset.data[index];
-            if (val > 0) {
-              ctx.save();
-              ctx.fillStyle = '#ffffff';
-              ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
-              ctx.textAlign = 'center';
-              ctx.textBaseline = 'bottom';
-              ctx.fillText(val, element.x, element.y - 4);
-              ctx.restore();
+            if (val && val > 0) {
+              const barY = element.y;
+              const barBase = element.base;
+              const segmentHeight = Math.abs(barBase - barY);
+
+              if (segmentHeight > 10) {
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(val, element.x, barY + (barBase - barY) / 2);
+                ctx.restore();
+              }
             }
           });
         });
@@ -347,44 +389,37 @@ const ChartManager = {
     this.charts['chart-zones'] = new Chart(ctx, {
       type: 'bar',
       data: {
-        labels: labels,
-        datasets: [{
-          label: 'Zone & Prabhag Case Burden',
-          data: totalData,
-          backgroundColor: zoneColors.map(c => `${c}cc`),
-          borderColor: zoneColors,
-          borderWidth: 1.5,
-          borderRadius: 6
-        }]
+        labels: zones,
+        datasets: datasets
       },
-      plugins: [zoneLabelsPlugin],
+      plugins: [prabhagBarLabelsPlugin],
       options: {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
           x: {
+            stacked: true,
             grid: { color: 'rgba(255,255,255,0.05)' },
             title: { display: true, text: 'NMC Municipal Zones (Zones 1 - 10)', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
           },
           y: {
+            stacked: true,
             grid: { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: 'Notified Cases Count', color: '#94a3b8', font: { weight: 'bold', size: 11 } },
-            beginAtZero: true
+            beginAtZero: true,
+            title: { display: true, text: 'Notified Cases Count', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
           }
         },
         plugins: {
-          legend: { display: false },
+          legend: {
+            position: 'top',
+            labels: { usePointStyle: true, boxWidth: 8, padding: 12, font: { size: 11, weight: '600' } }
+          },
           tooltip: {
             callbacks: {
-              title: (items) => `Nagpur Municipal ${items[0].label}`,
-              label: (item) => `Total Zone Burden: ${item.raw} cases`,
-              afterBody: (items) => {
-                const zKey = items[0].label;
-                const prabs = zoneMap[zKey]?.prabhags || {};
-                const sortedPrabs = Object.entries(prabs).sort((a, b) => b[1] - a[1]).slice(0, 5);
-                if (sortedPrabs.length === 0) return '';
-                const prabLines = sortedPrabs.map(([pName, count]) => `  📍 ${pName}: ${count} cases`);
-                return ['\nPrabhag Breakdown:'].concat(prabLines);
+              footer: (items) => {
+                let sum = 0;
+                items.forEach(i => sum += i.raw);
+                return `Total Zone Cases: ${sum}`;
               }
             }
           }
