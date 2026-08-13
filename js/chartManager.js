@@ -1,6 +1,6 @@
 /**
  * ChartManager.js - Manages all Chart.js visualizations for the dashboard.
- * Chart 4: Dynamic Zone & Prabhag Case Distribution with user's exact Chart.js configuration.
+ * Chart 4: Dynamic Zone & Prabhag Case Distribution with segment counts AND total numbers on top of bars.
  */
 
 const ChartManager = {
@@ -138,6 +138,7 @@ const ChartManager = {
     const d = (disStr || '').toLowerCase();
     if (d.includes('chikungunya') || d.includes('chikun')) return 'Chikungunya';
     if (d.includes('malaria')) return 'Malaria';
+    if (d.includes('japanese') || d.includes('encephalitis') || d.includes('je') || d.includes('scrub')) return 'JE_Other';
     return 'Dengue';
   },
 
@@ -314,7 +315,7 @@ const ChartManager = {
     patients.forEach(p => {
       const hosp = p.hospital || 'Unspecified';
       const cat = this.getDiseaseCategory(p.disease);
-      if (!hospMap[hosp]) hospMap[hosp] = { Dengue: 0, Chikungunya: 0, Malaria: 0, Total: 0 };
+      if (!hospMap[hosp]) hospMap[hosp] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE_Other: 0, Total: 0 };
       if (hospMap[hosp][cat] !== undefined) {
         hospMap[hosp][cat]++;
         hospMap[hosp].Total++;
@@ -326,6 +327,7 @@ const ChartManager = {
     const dengueData = sorted.map(s => s[1].Dengue);
     const chikData = sorted.map(s => s[1].Chikungunya);
     const malariaData = sorted.map(s => s[1].Malaria);
+    const jeData = sorted.map(s => s[1].JE_Other);
 
     this.charts['chart-facilities'] = new Chart(ctx, {
       type: 'bar',
@@ -334,7 +336,8 @@ const ChartManager = {
         datasets: [
           { label: 'Dengue', data: dengueData, backgroundColor: '#a855f7', borderRadius: 4 },
           { label: 'Chikungunya', data: chikData, backgroundColor: '#ec4899', borderRadius: 4 },
-          { label: 'Malaria', data: malariaData, backgroundColor: '#06b6d4', borderRadius: 4 }
+          { label: 'Malaria', data: malariaData, backgroundColor: '#06b6d4', borderRadius: 4 },
+          { label: 'JE / Others', data: jeData, backgroundColor: '#f59e0b', borderRadius: 4 }
         ]
       },
       options: {
@@ -367,14 +370,16 @@ const ChartManager = {
     const diseaseCategories = [
       { key: 'Dengue', label: 'Dengue', color: '#a855f7' },
       { key: 'Chikungunya', label: 'Chikungunya', color: '#ec4899' },
-      { key: 'Malaria', label: 'Malaria', color: '#06b6d4' }
+      { key: 'Malaria', label: 'Malaria', color: '#06b6d4' },
+      { key: 'JE_Other', label: 'JE / Others', color: '#f59e0b' }
     ];
 
     const classifyDisease = (disStr) => {
       const d = (disStr || '').toLowerCase();
       if (d.includes('chikungunya') || d.includes('chikun')) return 'Chikungunya';
       if (d.includes('malaria')) return 'Malaria';
-      return 'Dengue';
+      if (d.includes('dengue')) return 'Dengue';
+      return 'JE_Other';
     };
 
     if (this.currentZoneView === 'zone') {
@@ -388,7 +393,7 @@ const ChartManager = {
 
       const zoneDataMap = {};
       zones.forEach(z => {
-        zoneDataMap[z] = { Dengue: 0, Chikungunya: 0, Malaria: 0, total: 0 };
+        zoneDataMap[z] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE_Other: 0, total: 0 };
       });
 
       patients.forEach(p => {
@@ -409,10 +414,16 @@ const ChartManager = {
         };
       });
 
+      // Canvas plugin to render:
+      // 1. Inside bar segment disease count numbers
+      // 2. Bold total cases count directly above each stacked bar
       const inlineBarLabelsPlugin = {
         id: 'zoneBarLabels',
         afterDatasetsDraw(chart) {
           const { ctx } = chart;
+          const totalsPerX = new Array(chart.data.labels.length).fill(0);
+          const topYPerX = new Array(chart.data.labels.length).fill(9999);
+
           chart.data.datasets.forEach((dataset, datasetIndex) => {
             const meta = chart.getDatasetMeta(datasetIndex);
             if (meta.hidden) return;
@@ -420,11 +431,17 @@ const ChartManager = {
             meta.data.forEach((element, index) => {
               const val = dataset.data[index];
               if (val && val > 0) {
+                totalsPerX[index] += val;
+                if (element.y < topYPerX[index]) {
+                  topYPerX[index] = element.y;
+                }
+
                 const barY = element.y;
                 const barBase = element.base;
                 const segmentHeight = Math.abs(barBase - barY);
 
-                if (segmentHeight > 10) {
+                // Draw segment disease count if segment height > 6px
+                if (segmentHeight > 6) {
                   ctx.save();
                   ctx.fillStyle = '#ffffff';
                   ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
@@ -435,6 +452,25 @@ const ChartManager = {
                 }
               }
             });
+          });
+
+          // Draw Total Cases count on top of each bar
+          chart.data.labels.forEach((label, index) => {
+            const totalVal = totalsPerX[index];
+            const topY = topYPerX[index];
+            if (totalVal > 0 && topY < 9999) {
+              const meta = chart.getDatasetMeta(0);
+              if (meta.data[index]) {
+                const posX = meta.data[index].x;
+                ctx.save();
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(totalVal, posX, topY - 4);
+                ctx.restore();
+              }
+            }
           });
         }
       };
@@ -479,10 +515,18 @@ const ChartManager = {
               mode: 'index',
               intersect: false,
               callbacks: {
+                title: (items) => `Nagpur Municipal ${items[0].label}`,
+                label: (item) => {
+                  const zKey = item.label;
+                  const total = zoneDataMap[zKey]?.total || 1;
+                  const val = item.raw;
+                  const pct = ((val / total) * 100).toFixed(1);
+                  return `${item.dataset.label}: ${val} cases (${pct}% of zone total)`;
+                },
                 footer: (tooltipItems) => {
                   let total = 0;
                   tooltipItems.forEach((item) => { total += item.raw; });
-                  return `Total Cases: ${total}`;
+                  return `Total Zone Cases: ${total}`;
                 }
               }
             }
@@ -514,7 +558,7 @@ const ChartManager = {
         }
 
         if (!prabhagDataMap[prabRaw]) {
-          prabhagDataMap[prabRaw] = { Dengue: 0, Chikungunya: 0, Malaria: 0, total: 0 };
+          prabhagDataMap[prabRaw] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE_Other: 0, total: 0 };
         }
 
         const cat = classifyDisease(p.disease);
@@ -528,7 +572,7 @@ const ChartManager = {
 
       if (prabhagLabels.length === 0) {
         prabhagLabels.push('No Data Available');
-        prabhagDataMap['No Data Available'] = { Dengue: 0, Chikungunya: 0, Malaria: 0, total: 0 };
+        prabhagDataMap['No Data Available'] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE_Other: 0, total: 0 };
       }
 
       const datasets = diseaseCategories.map(cat => {
@@ -544,6 +588,9 @@ const ChartManager = {
         id: 'prabhagBarLabels',
         afterDatasetsDraw(chart) {
           const { ctx } = chart;
+          const totalsPerX = new Array(chart.data.labels.length).fill(0);
+          const topYPerX = new Array(chart.data.labels.length).fill(9999);
+
           chart.data.datasets.forEach((dataset, datasetIndex) => {
             const meta = chart.getDatasetMeta(datasetIndex);
             if (meta.hidden) return;
@@ -551,11 +598,16 @@ const ChartManager = {
             meta.data.forEach((element, index) => {
               const val = dataset.data[index];
               if (val && val > 0) {
+                totalsPerX[index] += val;
+                if (element.y < topYPerX[index]) {
+                  topYPerX[index] = element.y;
+                }
+
                 const barY = element.y;
                 const barBase = element.base;
                 const segmentHeight = Math.abs(barBase - barY);
 
-                if (segmentHeight > 10) {
+                if (segmentHeight > 6) {
                   ctx.save();
                   ctx.fillStyle = '#ffffff';
                   ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
@@ -566,6 +618,24 @@ const ChartManager = {
                 }
               }
             });
+          });
+
+          chart.data.labels.forEach((label, index) => {
+            const totalVal = totalsPerX[index];
+            const topY = topYPerX[index];
+            if (totalVal > 0 && topY < 9999) {
+              const meta = chart.getDatasetMeta(0);
+              if (meta.data[index]) {
+                const posX = meta.data[index].x;
+                ctx.save();
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = 'bold 12px "Plus Jakarta Sans", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'bottom';
+                ctx.fillText(totalVal, posX, topY - 4);
+                ctx.restore();
+              }
+            }
           });
         }
       };
@@ -601,10 +671,18 @@ const ChartManager = {
               mode: 'index',
               intersect: false,
               callbacks: {
+                title: (items) => `${items[0].label} (${selectedZoneName})`,
+                label: (item) => {
+                  const prabName = item.label;
+                  const total = prabhagDataMap[prabName]?.total || 1;
+                  const val = item.raw;
+                  const pct = ((val / total) * 100).toFixed(1);
+                  return `${item.dataset.label}: ${val} cases (${pct}% of prabhag total)`;
+                },
                 footer: (tooltipItems) => {
                   let total = 0;
                   tooltipItems.forEach((item) => { total += item.raw; });
-                  return `Total Cases: ${total}`;
+                  return `Total Prabhag Cases: ${total}`;
                 }
               }
             }
@@ -673,7 +751,7 @@ const ChartManager = {
         labels: ageGroups,
         datasets: [
           { label: 'Dengue', data: dengData, backgroundColor: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7' },
-          { label: 'Chikungunya', data: chikData, backgroundColor: 'rgba(236, 72, 153, 0.25)', borderColor: '#ec4899' },
+          { label: 'Chikungunya', label: 'Chikungunya', data: chikData, backgroundColor: 'rgba(236, 72, 153, 0.25)', borderColor: '#ec4899' },
           { label: 'Malaria', data: malariaData, backgroundColor: 'rgba(6, 182, 212, 0.25)', borderColor: '#06b6d4' }
         ]
       },
