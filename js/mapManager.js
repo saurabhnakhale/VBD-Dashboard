@@ -1,5 +1,5 @@
 /**
- * MapManager.js - Leaflet.js GIS spatial mapping with Ward GeoJSON boundaries (wards.geojson / WARDS_GEOJSON),
+ * MapManager.js - Leaflet.js GIS spatial mapping with Complete Ward GeoJSON boundaries (wards_simplified.geojson / WARDS_GEOJSON),
  * Ward-to-Zone Mapping (ward_zone_mapping.json / WARD_ZONE_MAPPING), high-contrast choropleth polygons,
  * and hospital nodes (Hotspot circles disabled for initial clean ward map testing).
  */
@@ -138,18 +138,19 @@ const MapManager = {
       }
     });
 
-    // 3. Fetch or load GeoJSON features (wards.geojson / WARDS_GEOJSON)
+    // 3. Fetch or load GeoJSON features (Complete coverage WARDS_GEOJSON)
     let geoData = (typeof WARDS_GEOJSON !== 'undefined' && WARDS_GEOJSON) ? WARDS_GEOJSON : this.geoJsonData;
 
     if (!geoData) {
       try {
-        const resp = await fetch('wards.geojson');
+        let resp = await fetch('wards_simplified.geojson');
+        if (!resp.ok) resp = await fetch('wards.geojson');
         if (resp.ok) {
           geoData = await resp.json();
           this.geoJsonData = geoData;
         }
       } catch (e) {
-        console.warn("Unable to fetch wards.geojson fallback:", e);
+        console.warn("Unable to fetch GeoJSON fallback:", e);
       }
     }
 
@@ -247,7 +248,6 @@ const MapManager = {
     }
 
     // 4. Hotspot Circles Overlay (Disabled per user request for testing clean Ward map)
-    // Red hotspot circles are intentionally omitted so user can test clean Ward boundaries first.
 
     // 5. Plot Hospitals
     Object.entries(HOSPITAL_COORDS).forEach(([hospName, coords]) => {
