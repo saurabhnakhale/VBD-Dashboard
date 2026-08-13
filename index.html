@@ -319,16 +319,21 @@
 
       <!-- Section 3: Visualizations Grid (Row 2: Zone/Prabhag & High Risk Area Match) -->
       <section class="dashboard-grid-2">
-        <!-- Chart 4: Zone & Prabhag Case Distribution -->
+        <!-- Chart 4: Dynamic Zone & Prabhag Case Distribution (With Interactive Drill-Down) -->
         <div class="chart-card">
-          <div class="card-header">
+          <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center;">
             <div class="card-title-group">
               <i class="fa-solid fa-map-location-dot card-title-icon"></i>
               <div>
-                <h3 class="card-title">4. Zone &amp; Prabhag Case Distribution</h3>
-                <p class="card-subtitle">Stacked case distribution across NMC Municipal Zones 1–10 and Prabhag clusters</p>
+                <h3 class="card-title" id="zone-chart-title">4. Zone &amp; Prabhag Case Distribution</h3>
+                <p class="card-subtitle" id="zone-chart-subtitle">Stacked disease breakdown across NMC Municipal Zones 1–10 (Click any Zone to drill down into Prabhags)</p>
               </div>
             </div>
+
+            <!-- Drill-Down Back Button -->
+            <button id="btn-back-to-zones" class="filter-reset-btn btn-sm" style="display: none; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.35); color: var(--blue-accent);">
+              <i class="fa-solid fa-arrow-left"></i> ← Back to All Zones
+            </button>
           </div>
           <div class="chart-container">
             <canvas id="chart-zones"></canvas>

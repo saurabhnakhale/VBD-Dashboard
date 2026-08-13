@@ -1,19 +1,13 @@
 /**
  * ChartManager.js - Manages all Chart.js visualizations for the dashboard.
- * (Case Trend Over Time chart removed as requested by user).
- * Includes:
- * 1. Epidemic Curve & Temporal Surge (Full timeline multi-series line chart)
- * 2. Demographic Risk Pyramid
- * 3. Facility Burden Stacked Breakdown
- * 4. Zone & Prabhag Case Distribution Stacked Bar Chart
- * 5. Sheet 2 High-Risk Area Match Ratio
- * 6. Age Group Susceptibility Radar
+ * Chart 4: Dynamic Zone & Prabhag-wise Disease Breakdown Chart with Interactive Drill-Down.
  */
 
 const ChartManager = {
   charts: {},
   currentPatients: [],
   currentFullGranularity: 'daily',
+  currentDrilldownZone: null,
 
   init() {
     Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
@@ -45,7 +39,6 @@ const ChartManager = {
   },
 
   setupGranularityListeners() {
-    // Full Timeline Epicurve Listener
     const fullContainer = document.getElementById('epicurve-full-granularity-toggle');
     if (fullContainer && !fullContainer.dataset.initialized) {
       fullContainer.dataset.initialized = 'true';
@@ -65,15 +58,13 @@ const ChartManager = {
 
   getDiseaseCategory(disStr) {
     const d = (disStr || '').toLowerCase();
-    if (d.includes('positive')) return 'EXCLUDE';
     if (d.includes('chikungunya') || d.includes('chikun')) return 'Chikungunya';
     if (d.includes('malaria')) return 'Malaria';
+    if (d.includes('japanese') || d.includes('encephalitis') || d.includes('je') || d.includes('scrub')) return 'JE_Other';
     return 'Dengue';
   },
 
-  // =========================================================================
-  // 1. Epidemic Curve & Temporal Surge (Full Timeline Line Chart with 5 Series)
-  // =========================================================================
+  // 1. Epidemic Curve & Temporal Surge
   renderFullEpidemicCurve(patients, granularity = 'daily') {
     this.destroyChart('chart-epicurve-full');
     const ctx = document.getElementById('chart-epicurve-full')?.getContext('2d');
@@ -246,8 +237,8 @@ const ChartManager = {
     patients.forEach(p => {
       const hosp = p.hospital || 'Unspecified';
       const cat = this.getDiseaseCategory(p.disease);
-      if (!hospMap[hosp]) hospMap[hosp] = { Dengue: 0, Chikungunya: 0, Malaria: 0, Total: 0 };
-      if (cat !== 'EXCLUDE' && hospMap[hosp][cat] !== undefined) {
+      if (!hospMap[hosp]) hospMap[hosp] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE_Other: 0, Total: 0 };
+      if (hospMap[hosp][cat] !== undefined) {
         hospMap[hosp][cat]++;
         hospMap[hosp].Total++;
       }
@@ -258,15 +249,17 @@ const ChartManager = {
     const dengueData = sorted.map(s => s[1].Dengue);
     const chikData = sorted.map(s => s[1].Chikungunya);
     const malariaData = sorted.map(s => s[1].Malaria);
+    const jeData = sorted.map(s => s[1].JE_Other);
 
     this.charts['chart-facilities'] = new Chart(ctx, {
       type: 'bar',
       data: {
         labels: labels,
         datasets: [
-          { label: 'Dengue', data: dengueData, backgroundColor: '#c8372d', borderRadius: 4 },
-          { label: 'Chikungunya', data: chikData, backgroundColor: '#e67e22', borderRadius: 4 },
-          { label: 'Malaria', data: malariaData, backgroundColor: '#1e824c', borderRadius: 4 }
+          { label: 'Dengue', data: dengueData, backgroundColor: '#a855f7', borderRadius: 4 },
+          { label: 'Chikungunya', data: chikData, backgroundColor: '#ec4899', borderRadius: 4 },
+          { label: 'Malaria', data: malariaData, backgroundColor: '#06b6d4', borderRadius: 4 },
+          { label: 'Japanese Encephalitis / Others', data: jeData, backgroundColor: '#f59e0b', borderRadius: 4 }
         ]
       },
       options: {
@@ -282,140 +275,283 @@ const ChartManager = {
     });
   },
 
-  // 4. Zone & Prabhag Case Distribution Stacked Bar Chart
+  // =========================================================================
+  // 4. DYNAMIC ZONE & PRABHAG-WISE DISEASE BREAKDOWN CHART (WITH DRILLDOWN)
+  // =========================================================================
   renderZonePrabhagDistribution(patients) {
     this.destroyChart('chart-zones');
-    const ctx = document.getElementById('chart-zones')?.getContext('2d');
+    const canvas = document.getElementById('chart-zones');
+    const ctx = canvas?.getContext('2d');
     if (!ctx) return;
 
-    const zones = Array.from({ length: 10 }, (_, i) => `Zone ${i + 1}`);
+    const backBtn = document.getElementById('btn-back-to-zones');
+    const titleElem = document.getElementById('zone-chart-title');
+    const subtitleElem = document.getElementById('zone-chart-subtitle');
 
-    const zoneMap = {};
-    zones.forEach(z => zoneMap[z] = {});
-
-    const globalPrabhagCounts = {};
-
-    patients.forEach(p => {
-      const zKey = `Zone ${p.zoneNum || 10}`;
-      let prabRaw = p.prabhag ? String(p.prabhag).trim() : 'Unspecified';
-      if (!prabRaw.toLowerCase().includes('prabhag') && prabRaw !== 'Unspecified') {
-        prabRaw = `Prabhag ${prabRaw}`;
-      }
-
-      if (!zoneMap[zKey]) zoneMap[zKey] = {};
-      zoneMap[zKey][prabRaw] = (zoneMap[zKey][prabRaw] || 0) + 1;
-      globalPrabhagCounts[prabRaw] = (globalPrabhagCounts[prabRaw] || 0) + 1;
-    });
-
-    const topPrabhags = Object.entries(globalPrabhagCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(entry => entry[0]);
-
-    const palette = [
-      '#8b5cf6', '#ec4899', '#3b82f6', '#10b981', '#f59e0b',
-      '#ef4444', '#06b6d4', '#6366f1', '#14b8a6'
+    const diseaseCategories = [
+      { key: 'Dengue', label: 'Dengue', color: '#a855f7' },
+      { key: 'Chikungunya', label: 'Chikungunya', color: '#ec4899' },
+      { key: 'Malaria', label: 'Malaria', color: '#06b6d4' },
+      { key: 'JE_Other', label: 'Japanese Encephalitis / Others', color: '#f59e0b' }
     ];
 
-    const datasets = [];
-
-    topPrabhags.forEach((pName, idx) => {
-      const data = zones.map(z => zoneMap[z][pName] || 0);
-      datasets.push({
-        label: pName,
-        data: data,
-        backgroundColor: palette[idx % palette.length],
-        borderRadius: 3
-      });
-    });
-
-    const otherData = zones.map(z => {
-      let otherSum = 0;
-      Object.entries(zoneMap[z] || {}).forEach(([pName, cnt]) => {
-        if (!topPrabhags.includes(pName)) otherSum += cnt;
-      });
-      return otherSum;
-    });
-
-    if (otherData.some(v => v > 0)) {
-      datasets.push({
-        label: 'Other Prabhags',
-        data: otherData,
-        backgroundColor: '#64748b',
-        borderRadius: 3
-      });
-    }
-
-    const prabhagBarLabelsPlugin = {
-      id: 'prabhagBarLabels',
-      afterDatasetsDraw(chart) {
-        const { ctx } = chart;
-        chart.data.datasets.forEach((dataset, datasetIndex) => {
-          const meta = chart.getDatasetMeta(datasetIndex);
-          if (meta.hidden) return;
-
-          meta.data.forEach((element, index) => {
-            const val = dataset.data[index];
-            if (val && val > 0) {
-              const barY = element.y;
-              const barBase = element.base;
-              const segmentHeight = Math.abs(barBase - barY);
-
-              if (segmentHeight > 10) {
-                ctx.save();
-                ctx.fillStyle = '#ffffff';
-                ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(val, element.x, barY + (barBase - barY) / 2);
-                ctx.restore();
-              }
-            }
-          });
-        });
-      }
+    const classifyDisease = (disStr) => {
+      const d = (disStr || '').toLowerCase();
+      if (d.includes('chikungunya') || d.includes('chikun')) return 'Chikungunya';
+      if (d.includes('malaria')) return 'Malaria';
+      if (d.includes('dengue')) return 'Dengue';
+      return 'JE_Other';
     };
 
-    this.charts['chart-zones'] = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: zones,
-        datasets: datasets
-      },
-      plugins: [prabhagBarLabelsPlugin],
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            stacked: true,
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            title: { display: true, text: 'NMC Municipal Zones (Zones 1 - 10)', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
+    if (this.currentDrilldownZone === null) {
+      // ---------------------------------------------------------------------
+      // PRIMARY VIEW: Zone-Wise Disease Breakdown (Zones 1 - 10)
+      // ---------------------------------------------------------------------
+      if (backBtn) backBtn.style.display = 'none';
+      if (titleElem) titleElem.textContent = '4. Zone & Prabhag Case Distribution';
+      if (subtitleElem) subtitleElem.textContent = 'Stacked disease breakdown across NMC Municipal Zones 1–10 (Click any Zone to drill down into Prabhags)';
+
+      const zones = Array.from({ length: 10 }, (_, i) => `Zone ${i + 1}`);
+
+      const zoneDataMap = {};
+      zones.forEach(z => {
+        zoneDataMap[z] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE_Other: 0, total: 0 };
+      });
+
+      patients.forEach(p => {
+        const zKey = `Zone ${p.zoneNum || 10}`;
+        const cat = classifyDisease(p.disease);
+        if (zoneDataMap[zKey]) {
+          zoneDataMap[zKey][cat]++;
+          zoneDataMap[zKey].total++;
+        }
+      });
+
+      const datasets = diseaseCategories.map(cat => {
+        return {
+          label: cat.label,
+          data: zones.map(z => zoneDataMap[z][cat.key]),
+          backgroundColor: cat.color,
+          borderRadius: 3
+        };
+      });
+
+      const inlineBarLabelsPlugin = {
+        id: 'zoneBarLabels',
+        afterDatasetsDraw(chart) {
+          const { ctx } = chart;
+          chart.data.datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
+            if (meta.hidden) return;
+
+            meta.data.forEach((element, index) => {
+              const val = dataset.data[index];
+              if (val && val > 0) {
+                const barY = element.y;
+                const barBase = element.base;
+                const segmentHeight = Math.abs(barBase - barY);
+
+                if (segmentHeight > 10) {
+                  ctx.save();
+                  ctx.fillStyle = '#ffffff';
+                  ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(val, element.x, barY + (barBase - barY) / 2);
+                  ctx.restore();
+                }
+              }
+            });
+          });
+        }
+      };
+
+      this.charts['chart-zones'] = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: zones, datasets: datasets },
+        plugins: [inlineBarLabelsPlugin],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          onClick: (e, elements) => {
+            if (elements && elements.length > 0) {
+              const idx = elements[0].index;
+              const selectedZone = zones[idx];
+              this.currentDrilldownZone = selectedZone;
+              this.renderZonePrabhagDistribution(this.currentPatients);
+            }
           },
-          y: {
-            stacked: true,
-            grid: { color: 'rgba(255,255,255,0.05)' },
-            beginAtZero: true,
-            title: { display: true, text: 'Notified Cases Count', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
-          }
-        },
-        plugins: {
-          legend: {
-            position: 'top',
-            labels: { usePointStyle: true, boxWidth: 8, padding: 12, font: { size: 11, weight: '600' } }
+          scales: {
+            x: {
+              stacked: true,
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              title: { display: true, text: 'NMC Municipal Zones (Zones 1 - 10) • Click any bar to drill down into Prabhags', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
+            },
+            y: {
+              stacked: true,
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              beginAtZero: true,
+              ticks: { precision: 0 },
+              title: { display: true, text: 'Notified Cases Count', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
+            }
           },
-          tooltip: {
-            callbacks: {
-              footer: (items) => {
-                let sum = 0;
-                items.forEach(i => sum += i.raw);
-                return `Total Zone Cases: ${sum}`;
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 12, padding: 16, font: { size: 12, weight: '600' } }
+            },
+            tooltip: {
+              callbacks: {
+                title: (items) => `Nagpur Municipal ${items[0].label}`,
+                label: (item) => {
+                  const zKey = item.label;
+                  const total = zoneDataMap[zKey]?.total || 1;
+                  const val = item.raw;
+                  const pct = ((val / total) * 100).toFixed(1);
+                  return `${item.dataset.label}: ${val} cases (${pct}% share of total zone cases)`;
+                },
+                footer: (items) => {
+                  let sum = 0;
+                  items.forEach(i => sum += i.raw);
+                  return `Total Zone Cases: ${sum}`;
+                }
               }
             }
           }
         }
+      });
+
+    } else {
+      // ---------------------------------------------------------------------
+      // SECONDARY VIEW: Prabhag Drill-Down for Selected Zone
+      // ---------------------------------------------------------------------
+      const zoneName = this.currentDrilldownZone;
+      const zoneNumInt = parseInt(zoneName.replace('Zone ', ''), 10);
+
+      if (backBtn) {
+        backBtn.style.display = 'inline-flex';
+        if (!backBtn.dataset.bound) {
+          backBtn.dataset.bound = 'true';
+          backBtn.addEventListener('click', () => {
+            this.currentDrilldownZone = null;
+            this.renderZonePrabhagDistribution(this.currentPatients);
+          });
+        }
       }
-    });
+
+      if (titleElem) titleElem.textContent = `4. ${zoneName} Prabhag-Wise Disease Breakdown`;
+      if (subtitleElem) subtitleElem.textContent = `Detailed disease breakdown across all Prabhags in ${zoneName}`;
+
+      const zonePatients = patients.filter(p => p.zoneNum === zoneNumInt);
+      const prabhagDataMap = {};
+
+      zonePatients.forEach(p => {
+        let prabRaw = p.prabhag ? String(p.prabhag).trim() : 'Unspecified';
+        if (!prabRaw.toLowerCase().includes('prabhag') && prabRaw !== 'Unspecified') {
+          prabRaw = `Prabhag ${prabRaw}`;
+        }
+
+        if (!prabhagDataMap[prabRaw]) {
+          prabhagDataMap[prabRaw] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE_Other: 0, total: 0 };
+        }
+
+        const cat = classifyDisease(p.disease);
+        prabhagDataMap[prabRaw][cat]++;
+        prabhagDataMap[prabRaw].total++;
+      });
+
+      const prabhagLabels = Object.keys(prabhagDataMap).sort((a, b) => prabhagDataMap[b].total - prabhagDataMap[a].total);
+      if (prabhagLabels.length === 0) {
+        prabhagLabels.push('No Data Available');
+        prabhagDataMap['No Data Available'] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE_Other: 0, total: 0 };
+      }
+
+      const datasets = diseaseCategories.map(cat => {
+        return {
+          label: cat.label,
+          data: prabhagLabels.map(p => prabhagDataMap[p][cat.key]),
+          backgroundColor: cat.color,
+          borderRadius: 3
+        };
+      });
+
+      const inlineBarLabelsPlugin = {
+        id: 'prabhagBarLabels',
+        afterDatasetsDraw(chart) {
+          const { ctx } = chart;
+          chart.data.datasets.forEach((dataset, datasetIndex) => {
+            const meta = chart.getDatasetMeta(datasetIndex);
+            if (meta.hidden) return;
+
+            meta.data.forEach((element, index) => {
+              const val = dataset.data[index];
+              if (val && val > 0) {
+                const barY = element.y;
+                const barBase = element.base;
+                const segmentHeight = Math.abs(barBase - barY);
+
+                if (segmentHeight > 10) {
+                  ctx.save();
+                  ctx.fillStyle = '#ffffff';
+                  ctx.font = 'bold 11px "Plus Jakarta Sans", sans-serif';
+                  ctx.textAlign = 'center';
+                  ctx.textBaseline = 'middle';
+                  ctx.fillText(val, element.x, barY + (barBase - barY) / 2);
+                  ctx.restore();
+                }
+              }
+            });
+          });
+        }
+      };
+
+      this.charts['chart-zones'] = new Chart(ctx, {
+        type: 'bar',
+        data: { labels: prabhagLabels, datasets: datasets },
+        plugins: [inlineBarLabelsPlugin],
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              stacked: true,
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              title: { display: true, text: `Prabhags in ${zoneName}`, color: '#94a3b8', font: { weight: 'bold', size: 11 } }
+            },
+            y: {
+              stacked: true,
+              grid: { color: 'rgba(255,255,255,0.05)' },
+              beginAtZero: true,
+              ticks: { precision: 0 },
+              title: { display: true, text: 'Notified Cases Count', color: '#94a3b8', font: { weight: 'bold', size: 11 } }
+            }
+          },
+          plugins: {
+            legend: {
+              position: 'top',
+              labels: { usePointStyle: true, pointStyle: 'rectRounded', boxWidth: 12, padding: 16, font: { size: 12, weight: '600' } }
+            },
+            tooltip: {
+              callbacks: {
+                title: (items) => `${items[0].label} (${zoneName})`,
+                label: (item) => {
+                  const prabName = item.label;
+                  const total = prabhagDataMap[prabName]?.total || 1;
+                  const val = item.raw;
+                  const pct = ((val / total) * 100).toFixed(1);
+                  return `${item.dataset.label}: ${val} cases (${pct}% share of prabhag total)`;
+                },
+                footer: (items) => {
+                  let sum = 0;
+                  items.forEach(i => sum += i.raw);
+                  return `Total Prabhag Cases: ${sum}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
   },
 
   // 5. High Risk Correlation
@@ -476,9 +612,9 @@ const ChartManager = {
       data: {
         labels: ageGroups,
         datasets: [
-          { label: 'Dengue', data: dengData, backgroundColor: 'rgba(200, 55, 45, 0.25)', borderColor: '#c8372d' },
-          { label: 'Chikungunya', data: chikData, backgroundColor: 'rgba(230, 126, 34, 0.25)', borderColor: '#e67e22' },
-          { label: 'Malaria', data: malariaData, backgroundColor: 'rgba(30, 130, 76, 0.25)', borderColor: '#1e824c' }
+          { label: 'Dengue', data: dengData, backgroundColor: 'rgba(168, 85, 247, 0.25)', borderColor: '#a855f7' },
+          { label: 'Chikungunya', data: chikData, backgroundColor: 'rgba(236, 72, 153, 0.25)', borderColor: '#ec4899' },
+          { label: 'Malaria', data: malariaData, backgroundColor: 'rgba(6, 182, 212, 0.25)', borderColor: '#06b6d4' }
         ]
       },
       options: {
