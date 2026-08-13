@@ -51,26 +51,62 @@
 
     </header>
 
-    <!-- Top Wrapper: Weather KPI Section FIRST, Filter Bar SECOND -->
-    <div class="dashboard-top-wrapper">
-      
-      <!-- 1. Live Weather KPI Section (FIRST - Above Filter Bar) -->
+    <!-- Top Dashboard Container: Weather First, Filter Bar Second -->
+    <div class="top-dashboard-container dashboard-top-wrapper">
+
+      <!-- 1. WEATHER KPI SECTION (Placed First at Top) -->
       <section class="weather-kpi-grid vbd-weather-grid" id="vbd-weather-container">
-        <!-- Injected dynamically by weatherManager.js -->
+        
+        <!-- Temperature Card -->
+        <div class="weather-card vbd-weather-card">
+          <div class="weather-card-header vbd-weather-header">
+            <span>🌡️ NAGPUR TEMPERATURE</span>
+            <i class="info-icon" title="Live ambient temperature">ⓘ</i>
+          </div>
+          <div class="weather-card-body">
+            <span class="weather-value vbd-weather-value" id="live-temp">31.1 °C</span>
+            <span class="status-badge badge-live vbd-badge vbd-badge-live" id="live-timestamp">Live • Updated...</span>
+          </div>
+        </div>
+
+        <!-- Humidity Card -->
+        <div class="weather-card vbd-weather-card">
+          <div class="weather-card-header vbd-weather-header">
+            <span>💧 RELATIVE HUMIDITY</span>
+            <i class="info-icon" title="Relative humidity index">ⓘ</i>
+          </div>
+          <div class="weather-card-body">
+            <span class="weather-value vbd-weather-value" id="live-humidity">58 %</span>
+            <span class="status-badge badge-warning vbd-badge vbd-badge-warning" id="vector-risk-badge">↑ Vector-Borne Risk Factor</span>
+          </div>
+        </div>
+
+        <!-- Rainfall Card -->
+        <div class="weather-card vbd-weather-card">
+          <div class="weather-card-header vbd-weather-header">
+            <span>🌧️ PRECIPITATION / RAINFALL</span>
+            <i class="info-icon" title="3-hour rainfall accumulation">ⓘ</i>
+          </div>
+          <div class="weather-card-body">
+            <span class="weather-value vbd-weather-value" id="live-rainfall">0.1 mm</span>
+            <span class="status-badge badge-info vbd-badge vbd-badge-info">↑ Waterlogging Index</span>
+          </div>
+        </div>
+
       </section>
 
-      <!-- 2. Slicers & Dynamic Filter Toolbar (SECOND - Below Weather) -->
+      <!-- 2. FILTER BAR SECTION (Placed Directly Below Weather) -->
       <section class="filter-bar-container filter-bar">
         
         <!-- 1. Search Slicer (Patient's Name, Hospital, Address ONLY) -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-search"><i class="fa-solid fa-magnifying-glass"></i> Search</label>
+          <label class="filter-label" for="filter-search"><i class="fa-solid fa-magnifying-glass"></i> SEARCH</label>
           <input type="text" id="filter-search" class="filter-control" placeholder="Search Patient Name, Hospital, Address...">
         </div>
 
         <!-- 2. Disease Slicer -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-disease"><i class="fa-solid fa-virus"></i> Disease</label>
+          <label class="filter-label" for="filter-disease"><i class="fa-solid fa-virus"></i> DISEASE</label>
           <select id="filter-disease" class="filter-control">
             <option value="ALL">All Diseases</option>
           </select>
@@ -78,7 +114,7 @@
 
         <!-- 3. Zone Slicer -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-zone"><i class="fa-solid fa-map-location-dot"></i> Zone</label>
+          <label class="filter-label" for="filter-zone"><i class="fa-solid fa-map-location-dot"></i> ZONE</label>
           <select id="filter-zone" class="filter-control">
             <option value="ALL">All Zones (1-10)</option>
           </select>
@@ -86,7 +122,7 @@
 
         <!-- 4. Month Slicer -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-month"><i class="fa-solid fa-calendar-days"></i> Month</label>
+          <label class="filter-label" for="filter-month"><i class="fa-solid fa-calendar-days"></i> MONTH</label>
           <select id="filter-month" class="filter-control">
             <option value="ALL">All Months</option>
           </select>
@@ -94,16 +130,16 @@
 
         <!-- 5. Year Slicer (Replaces Prabhag & Age Group) -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-year"><i class="fa-solid fa-calendar"></i> Year</label>
+          <label class="filter-label" for="filter-year"><i class="fa-solid fa-calendar"></i> YEAR</label>
           <select id="filter-year" class="filter-control">
             <option value="ALL">All Years</option>
           </select>
         </div>
 
         <!-- 6. Date Timeline Selector (Calendar Range) -->
-        <div class="filter-group filter-group-date">
-          <label class="filter-label" for="filter-start-date"><i class="fa-solid fa-calendar-week"></i> Date Timeline</label>
-          <div class="date-range-inputs">
+        <div class="filter-group filter-group-date date-timeline">
+          <label class="filter-label" for="filter-start-date"><i class="fa-solid fa-calendar-week"></i> DATE TIMELINE</label>
+          <div class="date-range-inputs date-inputs">
             <input type="date" id="filter-start-date" class="filter-control date-control" title="Start Date">
             <span class="date-sep">to</span>
             <input type="date" id="filter-end-date" class="filter-control date-control" title="End Date">
@@ -112,7 +148,7 @@
 
         <!-- 7. Facility Type Slicer (Hospital Signage) -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-facility"><i class="fa-solid fa-hospital"></i> Facility Type</label>
+          <label class="filter-label" for="filter-facility"><i class="fa-solid fa-hospital"></i> FACILITY TYPE</label>
           <select id="filter-facility" class="filter-control">
             <option value="ALL">All Facilities</option>
             <option value="Urban Primary Health Center (UPHC)">Urban Primary Health Centers (UPHC)</option>
@@ -123,7 +159,7 @@
 
         <!-- 8. Compact Reset Button -->
         <div class="filter-group filter-group-reset">
-          <button id="filter-reset-btn" class="filter-reset-btn btn-sm">
+          <button id="filter-reset-btn" class="filter-reset-btn btn-sm reset-btn">
             <i class="fa-solid fa-rotate-left"></i> Reset
           </button>
         </div>
