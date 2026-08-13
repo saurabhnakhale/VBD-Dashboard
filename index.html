@@ -365,19 +365,40 @@
           </div>
         </div>
 
-        <!-- Chart 5: Hotspot Map — Zone × Prabhag Case Density -->
+        <!-- Chart 5: Top Affected Prabhags Disease Breakdown Chart -->
         <div class="chart-card">
-          <div class="card-header">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
             <div class="card-title-group">
-              <i class="fa-solid fa-fire-flame-curved card-title-icon"></i>
+              <i class="fa-solid fa-chart-bar card-title-icon" style="color: #a855f7;"></i>
               <div>
-                <h3 class="card-title">Hotspot Map — Zone × Prabhag Case Density</h3>
-                <p class="card-subtitle">Darker cells indicate higher case concentration. Density mapped administratively by Zone and Prabhag.</p>
+                <h3 class="card-title">Top Affected Prabhags Disease Breakdown</h3>
+                <p class="card-subtitle">Ranked top 12 outbreak prabhags with stacked vector disease composition</p>
               </div>
             </div>
+            <!-- Zone Filter Dropdown -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <label for="top-prabhags-zone-filter" style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Zone:</label>
+              <select id="top-prabhags-zone-filter" class="form-select-sm" style="background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer;">
+                <option value="ALL">All Zones</option>
+                <option value="1">Zone 1 (Laxmi Nagar)</option>
+                <option value="2">Zone 2 (Dharmpeth)</option>
+                <option value="3">Zone 3 (Hanuman Nagar)</option>
+                <option value="4">Zone 4 (Dhantoli)</option>
+                <option value="5">Zone 5 (Nehru Nagar)</option>
+                <option value="6">Zone 6 (Gandhibag)</option>
+                <option value="7">Zone 7 (Satranjipura)</option>
+                <option value="8">Zone 8 (Lakadganj)</option>
+                <option value="9">Zone 9 (AashiNagar)</option>
+                <option value="10">Zone 10 (Mangalwari)</option>
+              </select>
+            </div>
           </div>
-          <div id="zone-prabhag-heatmap-container" style="overflow-x: auto; padding: 0.4rem; height: 100%; min-height: 380px; box-sizing: border-box;">
-            <!-- Rendered dynamically by js/chartManager.js -->
+          <div class="chart-container" style="height: 350px;">
+            <canvas id="chart-top-prabhags"></canvas>
+          </div>
+          <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #1e293b; background: rgba(15, 23, 42, 0.5);">
+            <span id="top-prabhags-count-footer">Total Active Prabhags Tracked: 0</span>
+            <span style="font-style: italic;">Sorted by Total Cases</span>
           </div>
         </div>
       </section>
@@ -482,13 +503,13 @@
   </div>
 
   <!-- Application Logic Scripts with Cache-Busting Versioning -->
-  <script src="js/weatherManager.js?v=20260813_10"></script>
-  <script src="js/dataLoader.js?v=20260813_10"></script>
-  <script src="js/kpiManager.js?v=20260813_10"></script>
-  <script src="js/chartManager.js?v=20260813_10"></script>
-  <script src="js/heatmapManager.js?v=20260813_10"></script>
-  <script src="js/wardsData.js?v=20260813_10"></script>
-  <script src="js/mapManager.js?v=20260813_10"></script>
-  <script src="js/app.js?v=20260813_10"></script>
+  <script src="js/weatherManager.js?v=20260813_11"></script>
+  <script src="js/dataLoader.js?v=20260813_11"></script>
+  <script src="js/kpiManager.js?v=20260813_11"></script>
+  <script src="js/chartManager.js?v=20260813_11"></script>
+  <script src="js/heatmapManager.js?v=20260813_11"></script>
+  <script src="js/wardsData.js?v=20260813_11"></script>
+  <script src="js/mapManager.js?v=20260813_11"></script>
+  <script src="js/app.js?v=20260813_11"></script>
 </body>
 </html>

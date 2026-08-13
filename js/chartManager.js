@@ -767,188 +767,157 @@ const ChartManager = {
   },
 
   renderHighRiskCorrelation(patients) {
-    const container = document.getElementById('zone-prabhag-heatmap-container');
-    if (!container) return;
+    const targetCanvas = document.getElementById('chart-top-prabhags');
+    if (!targetCanvas) return;
 
-    // 1. Collect all unique Prabhag numbers from patient linelist
-    const prabhagSet = new Set();
-    patients.forEach(p => {
-      if (p.prabhag) {
-        const pNum = parseInt(p.prabhag, 10);
-        if (!isNaN(pNum)) prabhagSet.add(pNum);
-      }
-    });
+    // Attach Zone Filter event listener if present
+    const zoneSelect = document.getElementById('top-prabhags-zone-filter');
+    const selectedZone = zoneSelect ? zoneSelect.value : 'ALL';
 
-    let sortedPrabhags = Array.from(prabhagSet).sort((a, b) => a - b);
-    if (sortedPrabhags.length === 0) {
-      sortedPrabhags = [0, 2, 3, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 19, 20, 21, 23, 25, 26, 31, 33, 34, 35, 36, 37, 38];
-    }
-
-    // 2. Initialize 2D Matrix (Zones 1-10 x Prabhags) with disease-specific objects
-    const matrix = {};
-    const zoneTotals = {};
-    for (let z = 1; z <= 10; z++) {
-      matrix[z] = {};
-      zoneTotals[z] = 0;
-      sortedPrabhags.forEach(p => {
-        matrix[z][p] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE_Other: 0, Total: 0 };
+    if (zoneSelect && !zoneSelect.dataset.listenerAttached) {
+      zoneSelect.addEventListener('change', () => {
+        this.renderHighRiskCorrelation(this.lastPatients || patients);
       });
+      zoneSelect.dataset.listenerAttached = 'true';
     }
+
+    this.lastPatients = patients;
+
+    // 1. Aggregate cases by Prabhag & Zone
+    const prabhagMap = {}; // key: "P16", value: { prabhagKey: "P16", zoneLabel: "Zone 1", dengue: 0, chikungunya: 0, malaria: 0, scrub: 0, total: 0 }
 
     patients.forEach(p => {
-      const z = p.zoneNum || 10;
-      const prab = p.prabhag ? parseInt(p.prabhag, 10) : null;
-      if (z >= 1 && z <= 10 && prab !== null && matrix[z][prab]) {
-        const dStr = (p.disease || '').toLowerCase();
-        if (dStr.includes('chikun')) matrix[z][prab].Chikungunya++;
-        else if (dStr.includes('malaria')) matrix[z][prab].Malaria++;
-        else if (dStr.includes('japanese') || dStr.includes('encephalitis') || dStr.includes('je') || dStr.includes('scrub') || dStr.includes('typhus')) matrix[z][prab].JE_Other++;
-        else matrix[z][prab].Dengue++;
-
-        matrix[z][prab].Total++;
-        zoneTotals[z]++;
+      const zNum = p.zoneNum || 10;
+      if (selectedZone !== 'ALL' && String(zNum) !== String(selectedZone)) {
+        return; // filter by selected zone
       }
+
+      let pStr = p.prabhag ? String(p.prabhag).trim() : '0';
+      const pNum = parseInt(pStr, 10);
+      const prabhagKey = !isNaN(pNum) ? `P${pNum}` : (pStr.startsWith('P') ? pStr : `P${pStr}`);
+      const zoneLabel = `Zone ${zNum}`;
+
+      if (!prabhagMap[prabhagKey]) {
+        prabhagMap[prabhagKey] = {
+          prabhagKey,
+          zoneLabel,
+          dengue: 0,
+          chikungunya: 0,
+          malaria: 0,
+          scrub: 0,
+          total: 0
+        };
+      }
+
+      const dStr = (p.disease || '').toLowerCase();
+      if (dStr.includes('chikun')) prabhagMap[prabhagKey].chikungunya++;
+      else if (dStr.includes('malaria')) prabhagMap[prabhagKey].malaria++;
+      else if (dStr.includes('japanese') || dStr.includes('encephalitis') || dStr.includes('je') || dStr.includes('scrub') || dStr.includes('typhus')) prabhagMap[prabhagKey].scrub++;
+      else prabhagMap[prabhagKey].dengue++;
+
+      prabhagMap[prabhagKey].total++;
     });
 
-    let grandTotal = 0;
-    Object.values(zoneTotals).forEach(t => grandTotal += t);
+    const activePrabhagsList = Object.values(prabhagMap).sort((a, b) => b.total - a.total);
 
-    // Helper function to render a mini-pie / donut bubble cell
-    const renderCellBubble = (cellData, zoneNum, prabhagNum) => {
-      const { Dengue, Chikungunya, Malaria, JE_Other, Total } = cellData;
-      if (Total === 0) {
-        return `<td style="padding: 6px 2px; color: rgba(255,255,255,0.1); font-size: 0.65rem;">·</td>`;
-      }
-
-      // Proportions for conic-gradient pie slices
-      const pDengue = (Dengue / Total) * 100;
-      const pChik = (Chikungunya / Total) * 100;
-      const pMalaria = (Malaria / Total) * 100;
-      const pJe = (JE_Other / Total) * 100;
-
-      const deg1 = pDengue;
-      const deg2 = deg1 + pChik;
-      const deg3 = deg2 + pMalaria;
-
-      // CSS conic-gradient string
-      let conicBg = '';
-      if (pDengue === 100) conicBg = '#a855f7';
-      else if (pChik === 100) conicBg = '#ec4899';
-      else if (pMalaria === 100) conicBg = '#06b6d4';
-      else if (pJe === 100) conicBg = '#f59e0b';
-      else {
-        conicBg = `conic-gradient(#a855f7 0% ${deg1}%, #ec4899 ${deg1}% ${deg2}%, #06b6d4 ${deg2}% ${deg3}%, #f59e0b ${deg3}% 100%)`;
-      }
-
-      // Bubble diameter scaling based on case density
-      let size = 22;
-      if (Total >= 6) size = 36;
-      else if (Total >= 4) size = 32;
-      else if (Total >= 3) size = 28;
-      else if (Total >= 2) size = 25;
-
-      const innerSize = Math.max(12, size - 8);
-
-      const tooltipText = `Zone ${zoneNum}, Prabhag P${prabhagNum}&#10;Total: ${Total} cases&#10;• 🦟 Dengue: ${Dengue}&#10;• 🦠 Chikungunya: ${Chikungunya}&#10;• 🔬 Malaria: ${Malaria}&#10;• 🐛 Scrub Typhus / JE: ${JE_Other}`;
-
-      return `
-        <td title="${tooltipText}" style="padding: 4px 2px; vertical-align: middle; text-align: center;">
-          <div style="
-            width: ${size}px;
-            height: ${size}px;
-            margin: 0 auto;
-            border-radius: 50%;
-            background: ${conicBg};
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.6);
-            cursor: pointer;
-            transition: transform 0.15s ease;
-          " onmouseover="this.style.transform='scale(1.25)'" onmouseout="this.style.transform='scale(1.0)'">
-            <div style="
-              width: ${innerSize}px;
-              height: ${innerSize}px;
-              border-radius: 50%;
-              background: #0b1120;
-              color: #ffffff;
-              font-weight: 900;
-              font-size: ${Total >= 10 ? '9px' : '10px'};
-              display: flex;
-              align-items: center;
-              justify-content: center;
-            ">
-              ${Total}
-            </div>
-          </div>
-        </td>
-      `;
-    };
-
-    // 3. Build Table HTML
-    let tableHtml = `
-      <div style="overflow-x: auto; max-width: 100%; max-height: 350px; overflow-y: auto;">
-        <table style="width: 100%; border-collapse: separate; border-spacing: 2px; font-size: 0.75rem; text-align: center; color: #f8fafc;">
-          <thead>
-            <tr style="position: sticky; top: 0; z-index: 4; background: #0b1120;">
-              <th style="padding: 7px 10px; color: #94a3b8; text-align: left; position: sticky; left: 0; background: #0b1120; z-index: 5; font-weight: bold; border-bottom: 1px solid rgba(255,255,255,0.1); min-width: 90px;">Zone \\ Prabhag</th>
-    `;
-
-    sortedPrabhags.forEach(p => {
-      tableHtml += `<th style="padding: 7px 4px; color: #94a3b8; font-weight: 700; min-width: 32px; border-bottom: 1px solid rgba(255,255,255,0.1);">P${p}</th>`;
-    });
-
-    tableHtml += `
-              <th style="padding: 7px 10px; color: #f8fafc; background: #1e1b4b; font-weight: 800; border-bottom: 1px solid rgba(255,255,255,0.1); min-width: 75px;">Zone Total</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    for (let z = 1; z <= 10; z++) {
-      tableHtml += `<tr>`;
-      tableHtml += `<td style="padding: 6px 10px; text-align: left; font-weight: 700; color: #f8fafc; position: sticky; left: 0; background: #0b1120; z-index: 3; border-right: 1px solid rgba(255,255,255,0.05); white-space: nowrap;">Zone ${z}</td>`;
-
-      sortedPrabhags.forEach(p => {
-        tableHtml += renderCellBubble(matrix[z][p], z, p);
-      });
-
-      tableHtml += `<td style="padding: 6px 10px; font-weight: 800; color: #a855f7; background: rgba(30, 27, 75, 0.75); border-radius: 4px;">${zoneTotals[z]}</td>`;
-      tableHtml += `</tr>`;
+    // Footer update
+    const footerElem = document.getElementById('top-prabhags-count-footer');
+    if (footerElem) {
+      footerElem.textContent = `Total Active Prabhags Tracked: ${activePrabhagsList.length}`;
     }
 
-    tableHtml += `
-          </tbody>
-        </table>
-      </div>
+    // Top 12 Prabhags
+    const top12 = activePrabhagsList.slice(0, 12);
 
-      <!-- Disease & Density Legend Header -->
-      <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-top: 10px; padding: 8px 12px; font-size: 0.75rem; color: #94a3b8; background: rgba(15, 23, 42, 0.7); border-radius: 8px; border: 1px solid rgba(255,255,255,0.05); gap: 10px;">
-        
-        <!-- Disease Proportions Legend -->
-        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-          <span style="font-weight: 700; color: #f8fafc;">Mini-Pie Disease Breakdown:</span>
-          <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #a855f7;"></span> 🦟 Dengue</span>
-          <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #ec4899;"></span> 🦠 Chikungunya</span>
-          <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #06b6d4;"></span> 🔬 Malaria</span>
-          <span style="display: flex; align-items: center; gap: 4px;"><span style="width: 10px; height: 10px; border-radius: 50%; background: #f59e0b;"></span> 🐛 Scrub Typhus / JE</span>
-        </div>
+    const labels = top12.map(item => `${item.prabhagKey} (${item.zoneLabel})`);
+    const dengueData = top12.map(item => item.dengue);
+    const chikData = top12.map(item => item.chikungunya);
+    const malData = top12.map(item => item.malaria);
+    const scrubData = top12.map(item => item.scrub);
 
-        <!-- Bubble Size Density Scale -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-          <span style="font-weight: 700; color: #f8fafc;">Density Scale:</span>
-          <span style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem;"><span style="width: 14px; height: 14px; border-radius: 50%; background: #a855f7; display: inline-block;"></span> 1-2 Cases</span>
-          <span style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem;"><span style="width: 18px; height: 18px; border-radius: 50%; background: #a855f7; display: inline-block;"></span> 3-5 Cases</span>
-          <span style="display: flex; align-items: center; gap: 4px; font-size: 0.7rem;"><span style="width: 22px; height: 22px; border-radius: 50%; background: #a855f7; display: inline-block;"></span> 6+ Cases</span>
-        </div>
+    const ctx = targetCanvas.getContext('2d');
+    if (this.charts['chart-top-prabhags']) {
+      this.charts['chart-top-prabhags'].destroy();
+    }
 
-        <div style="font-weight: 700; color: #f8fafc;">
-          Total Cases: <span style="color: #a855f7;">${grandTotal}</span>
-        </div>
-
-      </div>
-    `;
-
-    container.innerHTML = tableHtml;
+    this.charts['chart-top-prabhags'] = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Dengue',
+            data: dengueData,
+            backgroundColor: '#a855f7',
+            borderColor: '#9333ea',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'Chikungunya',
+            data: chikData,
+            backgroundColor: '#ec4899',
+            borderColor: '#db2777',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'Malaria',
+            data: malData,
+            backgroundColor: '#06b6d4',
+            borderColor: '#0891b2',
+            borderWidth: 1,
+            borderRadius: 4
+          },
+          {
+            label: 'Scrub Typhus / Others',
+            data: scrubData,
+            backgroundColor: '#f59e0b',
+            borderColor: '#d97706',
+            borderWidth: 1,
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            stacked: true,
+            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+            ticks: { color: '#94a3b8', precision: 0 },
+            title: { display: true, text: 'Confirmed Case Count', color: '#94a3b8', font: { weight: '600', size: 11 } }
+          },
+          y: {
+            stacked: true,
+            grid: { display: false },
+            ticks: { color: '#f8fafc', font: { weight: '700', size: 11 } },
+            title: { display: true, text: 'Prabhag (Zone)', color: '#94a3b8', font: { weight: '600', size: 11 } }
+          }
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { usePointStyle: true, pointStyle: 'circle', boxWidth: 8, color: '#f8fafc', font: { size: 11, weight: '600' } }
+          },
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const idx = items[0].dataIndex;
+                const item = top12[idx];
+                return `${item.prabhagKey} - ${item.zoneLabel}`;
+              },
+              afterBody: (items) => {
+                const idx = items[0].dataIndex;
+                const item = top12[idx];
+                return `Total Burden: ${item.total} cases`;
+              }
+            }
+          }
+        }
+      }
+    });
   }
 };
