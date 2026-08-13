@@ -1,13 +1,13 @@
 /* ==========================================================================
-   EXACT MATCH DESIGN SYSTEM FROM USER SCREENSHOTS + NCDC & NMC LOGOS
+   EXACT MATCH DESIGN SYSTEM + CUSTOM CENTERED HEADER & OFFICIAL LOGOS
    Aesthetics: Deep Midnight Background (#090e1a), Dark Card Panels (#11182e),
-               Vivid Pink/Purple/Blue/Green Accents & Heatmap Matrix
+               Vivid Pink/Purple/Blue/Green Accents & Centered Title Banner
    ========================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap');
 
 :root {
-  /* Exact Colors from Screenshots */
+  /* Exact Colors */
   --bg-main: #090e1a;
   --bg-card: #11182e;
   --bg-card-hover: #16203a;
@@ -19,7 +19,7 @@
   --text-sub: #94a3b8;
   --text-muted: #64748b;
 
-  /* Accent Colors */
+  /* Accents */
   --pink-accent: #ec4899;
   --purple-accent: #8b5cf6;
   --blue-accent: #3b82f6;
@@ -51,80 +51,58 @@ body {
   min-height: 100vh;
 }
 
-/* Header Navbar */
+/* Header Navbar Centered Layout */
 .navbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.25rem 2rem;
   background: var(--bg-main);
   border-bottom: 1px solid var(--border-card);
-  gap: 1.5rem;
-  flex-wrap: wrap;
-}
-
-.brand-container {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-}
-
-/* Official Logo Badges (NCDC & NMC) */
-.logos-group {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.official-logo-badge {
+  padding: 1.25rem 2rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #0d1424;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  padding: 0.35rem 0.55rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  gap: 1rem;
 }
 
-.official-logo-badge:hover {
-  transform: translateY(-2px);
-  border-color: var(--blue-accent);
-}
-
-.logo-label {
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.05em;
-  color: #94a3b8;
-  margin-top: 0.15rem;
-}
-
-.brand-text-block {
+.navbar-top-bar {
   display: flex;
-  flex-direction: column;
-}
-
-.brand-title {
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-}
-
-.brand-subtitle {
-  font-size: 0.78rem;
-  color: var(--text-sub);
-  font-weight: 500;
-}
-
-.navbar-actions {
-  display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: 1rem;
+  width: 100%;
   flex-wrap: wrap;
+}
+
+.header-main-title-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  width: 100%;
+  padding: 0.5rem 0;
+}
+
+.header-logo {
+  height: 68px;
+  width: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.header-logo:hover {
+  transform: scale(1.05);
+}
+
+.brand-title-centered {
+  font-size: 2.1rem;
+  font-weight: 900;
+  color: #ffffff;
+  text-align: center;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-shadow: 0 0 25px rgba(99, 102, 241, 0.35);
 }
 
 /* Date Badge */
@@ -141,7 +119,7 @@ body {
   color: #60a5fa;
 }
 
-/* Designer Attribution Badge */
+/* Designer Credit Badge */
 .designer-credit-badge {
   display: inline-flex;
   align-items: center;
@@ -162,7 +140,7 @@ body {
 
 .designer-credit-badge small {
   color: #c084fc;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .live-badge {
@@ -191,25 +169,6 @@ body {
   0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
   70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
-}
-
-.btn-icon {
-  background: var(--bg-card);
-  border: 1px solid var(--border-card);
-  color: var(--text-white);
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-btn);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1rem;
-}
-
-.btn-icon:hover {
-  border-color: var(--blue-accent);
-  color: var(--blue-accent);
 }
 
 /* Filter Bar */
@@ -577,4 +536,6 @@ body {
 
 @media (max-width: 1024px) {
   .dashboard-grid-2 { grid-template-columns: 1fr; }
+  .brand-title-centered { font-size: 1.5rem; }
+  .header-logo { height: 50px; }
 }
