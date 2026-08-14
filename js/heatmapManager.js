@@ -3,68 +3,7 @@
  * representing disease intensity across Zones (1-10) and Prabhags/Months.
  */
 
-function processHeatmapData(records) {
-  const matrix = {};
-  let totalCount = 0;
 
-  if (!records || !Array.isArray(records)) return matrix;
-
-  records.forEach(row => {
-    // 1. Normalize field keys safely
-    const zone = row.Zone || row.zone || row.zoneName || `Zone ${row.zoneNum || '1'}` || 'Unspecified Zone';
-    let prabhag = row.Prabhag || row.prabhag || row.prabhag_no || 'P0';
-    
-    // Ensure Prabhag format matches header labels (e.g., "P16" or "16")
-    if (!prabhag.toString().startsWith('P') && prabhag !== 'P0') {
-      prabhag = `P${prabhag}`;
-    }
-
-    const disease = (row.Disease || row.disease || '').toLowerCase();
-
-    // 2. Initialize Matrix Nodes
-    if (!matrix[zone]) matrix[zone] = {};
-    if (!matrix[zone][prabhag]) {
-      matrix[zone][prabhag] = { total: 0, dengue: 0, chikungunya: 0, malaria: 0, scrub: 0 };
-    }
-
-    // 3. Increment Counts
-    matrix[zone][prabhag].total += 1;
-    totalCount += 1;
-
-    if (disease.includes('dengue')) matrix[zone][prabhag].dengue += 1;
-    else if (disease.includes('chikungunya') || disease.includes('chikun')) matrix[zone][prabhag].chikungunya += 1;
-    else if (disease.includes('malaria')) matrix[zone][prabhag].malaria += 1;
-    else matrix[zone][prabhag].scrub += 1;
-  });
-
-  // 4. Update UI Counter
-  const totalElem = document.getElementById('total-cases-count');
-  if (totalElem) totalElem.textContent = `Total Cases: ${totalCount}`;
-
-  return matrix;
-}
-
-function renderMatrixCell(zoneData, prabhagKey) {
-  if (!zoneData) return `<td class="empty-cell">-</td>`;
-  const cellData = zoneData[prabhagKey];
-
-  // Agar koi case nahi hai
-  if (!cellData || cellData.total === 0) {
-    return `<td class="empty-cell">-</td>`;
-  }
-
-  // Exact Disease Numbers dikhane ke liye
-  return `
-    <td class="case-number-cell">
-      <div class="disease-counts-wrapper">
-        ${cellData.dengue > 0 ? `<span class="count-badge dengue-badge" title="Dengue: ${cellData.dengue}">${cellData.dengue}D</span>` : ''}
-        ${cellData.chikungunya > 0 ? `<span class="count-badge chik-badge" title="Chikungunya: ${cellData.chikungunya}">${cellData.chikungunya}C</span>` : ''}
-        ${cellData.malaria > 0 ? `<span class="count-badge malaria-badge" title="Malaria: ${cellData.malaria}">${cellData.malaria}M</span>` : ''}
-        ${cellData.scrub > 0 ? `<span class="count-badge scrub-badge" title="Scrub Typhus / JE: ${cellData.scrub}">${cellData.scrub}S</span>` : ''}
-      </div>
-    </td>
-  `;
-}
 
 const HeatmapManager = {
   render(patients) {
