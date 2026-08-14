@@ -138,21 +138,8 @@ const MapManager = {
       }
     });
 
-    // 3. Fetch or load GeoJSON features (Complete coverage WARDS_GEOJSON)
+    // 3. Load bundled GeoJSON features (Complete coverage WARDS_GEOJSON)
     let geoData = (typeof WARDS_GEOJSON !== 'undefined' && WARDS_GEOJSON) ? WARDS_GEOJSON : this.geoJsonData;
-
-    if (!geoData) {
-      try {
-        let resp = await fetch('wards_simplified.geojson');
-        if (!resp.ok) resp = await fetch('wards.geojson');
-        if (resp.ok) {
-          geoData = await resp.json();
-          this.geoJsonData = geoData;
-        }
-      } catch (e) {
-        console.warn("Unable to fetch GeoJSON fallback:", e);
-      }
-    }
 
     if (geoData) {
       const geoJsonLayer = L.geoJSON(geoData, {
