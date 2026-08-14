@@ -68,76 +68,79 @@ function renderMatrixCell(zoneData, prabhagKey) {
 
 const HeatmapManager = {
   render(patients) {
-    const container = document.getElementById('heatmap-container');
-    if (!container) return;
-
-    const months = ['June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    const matrix = {};
-
-    for (let z = 1; z <= 10; z++) {
-      matrix[z] = {};
-      months.forEach(m => { matrix[z][m] = 0; });
-    }
-
-    let maxVal = 0;
-    patients.forEach(p => {
-      const z = p.zoneNum || 10;
-      const m = p.month || 'July';
-      if (!matrix[z]) matrix[z] = {};
-      matrix[z][m] = (matrix[z][m] || 0) + 1;
-      if (matrix[z][m] > maxVal) maxVal = matrix[z][m];
-    });
-
-    if (maxVal === 0) maxVal = 1;
-
-    let html = `
-      <div class="heatmap-wrapper">
-        <table class="heatmap-table">
-          <thead>
-            <tr>
-              <th>Zone / Month</th>
-              ${months.map(m => `<th>${m}</th>`).join('')}
-              <th>Total Intensity</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    for (let z = 1; z <= 10; z++) {
-      const zoneName = `Zone ${z} (${ZONE_MAP[z] ? ZONE_MAP[z].split(' ')[0] : ''})`;
-      let zoneTotal = 0;
-
-      html += `<tr><td style="text-align: left; font-weight: 700; color: var(--text-primary);">${zoneName}</td>`;
-
-      months.forEach(m => {
-        const count = matrix[z][m] || 0;
-        zoneTotal += count;
-        const ratio = count / maxVal;
-        
-        let bg = 'rgba(30, 41, 59, 0.4)';
-        if (count > 0) {
-          const alpha = 0.3 + (ratio * 0.7);
-          if (ratio > 0.6) bg = `rgba(239, 68, 68, ${alpha})`;
-          else if (ratio > 0.3) bg = `rgba(245, 158, 11, ${alpha})`;
-          else bg = `rgba(99, 102, 241, ${alpha})`;
-        }
-
-        html += `
-          <td style="background: ${bg};" title="${zoneName} - ${m}: ${count} cases">
-            ${count > 0 ? count : '-'}
-          </td>
-        `;
-      });
-
-      html += `<td style="font-weight: 800; color: var(--accent-secondary);">${zoneTotal}</td></tr>`;
-    }
-
-    html += `
-          </tbody>
-        </table>
-      </div>
-    `;
-
-    container.innerHTML = html;
+    renderZoneDiseaseHeatmap(patients);
   }
 };
+
+// --- 2. RENDER ZONE × DISEASE HEATMAP MATRIX ---
+function renderZoneDiseaseHeatmap(records) {
+  const container = document.getElementById('zoneDiseaseHeatmapContainer') || document.getElementById('heatmap-container');
+  if (!container || !records) return;
+
+  const zones = ['Zone 1', 'Zone 2', 'Zone 3', 'Zone 4', 'Zone 5', 'Zone 6', 'Zone 7', 'Zone 8', 'Zone 9', 'Zone 10'];
+  const matrix = {};
+
+  zones.forEach(z => {
+    matrix[z] = { dengue: 0, chikungunya: 0, malaria: 0, other: 0, total: 0 };
+  });
+
+  records.forEach(row => {
+    let rawZone = row.Zone || row.zone || row['Zone Name'] || row.zoneName;
+    if (!rawZone && row.zoneNum) rawZone = `Zone ${row.zoneNum}`;
+    if (!rawZone) rawZone = 'Zone 1';
+    
+    // Normalize format like "1" or "Zone 1"
+    const zKey = rawZone.toString().toLowerCase().includes('zone') ? rawZone : `Zone ${rawZone}`;
+    
+    if (!matrix[zKey]) matrix[zKey] = { dengue: 0, chikungunya: 0, malaria: 0, other: 0, total: 0 };
+    
+    const disease = (row.Disease || row.disease || '').toLowerCase();
+    matrix[zKey].total++;
+
+    if (disease.includes('dengue')) matrix[zKey].dengue++;
+    else if (disease.includes('chikungunya') || disease.includes('chikun')) matrix[zKey].chikungunya++;
+    else if (disease.includes('malaria')) matrix[zKey].malaria++;
+    else matrix[zKey].other++;
+  });
+
+  function getHeatColor(count) {
+    if (count === 0) return 'background: #0b1120; color: #475569;';
+    if (count < 10) return 'background: rgba(59, 130, 246, 0.2); color: #93c5fd;';
+    if (count < 30) return 'background: rgba(245, 158, 11, 0.3); color: #fcd34d; font-weight: bold;';
+    return 'background: rgba(239, 68, 68, 0.45); color: #fca5a5; font-weight: bold;';
+  }
+
+  let html = `
+    <div style="overflow-x: auto; width: 100%; border: 1px solid #1e293b; border-radius: 8px;">
+      <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; color: #f8fafc;">
+        <thead>
+          <tr style="background: #1e293b; color: #94a3b8;">
+            <th style="padding: 10px; border: 1px solid #334155; text-align: left;">Zone</th>
+            <th style="padding: 10px; border: 1px solid #334155; color: #a855f7;">Dengue</th>
+            <th style="padding: 10px; border: 1px solid #334155; color: #ec4899;">Chikungunya</th>
+            <th style="padding: 10px; border: 1px solid #334155; color: #06b6d4;">Malaria</th>
+            <th style="padding: 10px; border: 1px solid #334155; color: #f59e0b;">Scrub / JE</th>
+            <th style="padding: 10px; border: 1px solid #334155; color: #ffffff;">Total Burden</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${zones.map(z => {
+            const zNum = parseInt(z.replace('Zone ', ''), 10);
+            const zName = (typeof ZONE_MAP !== 'undefined' && ZONE_MAP[zNum]) ? ` (${ZONE_MAP[zNum].split(' ')[0]})` : '';
+            return `
+            <tr>
+              <td style="padding: 8px 12px; font-weight: bold; text-align: left; background: #0f172a; border: 1px solid #1e293b;">${z}${zName}</td>
+              <td style="padding: 8px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].dengue : 0)}">${matrix[z] ? matrix[z].dengue : 0}</td>
+              <td style="padding: 8px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].chikungunya : 0)}">${matrix[z] ? matrix[z].chikungunya : 0}</td>
+              <td style="padding: 8px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].malaria : 0)}">${matrix[z] ? matrix[z].malaria : 0}</td>
+              <td style="padding: 8px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].other : 0)}">${matrix[z] ? matrix[z].other : 0}</td>
+              <td style="padding: 8px; border: 1px solid #1e293b; background: #131d31; font-weight: bold; color: #ffffff;">${matrix[z] ? matrix[z].total : 0}</td>
+            </tr>
+          `}).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  container.innerHTML = html;
+}

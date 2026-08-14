@@ -767,12 +767,108 @@ const ChartManager = {
   },
 
   renderHighRiskCorrelation(patients) {
-    const targetCanvas = document.getElementById('chart-top-prabhags');
-    if (!targetCanvas) return;
-
-    // Attach Zone Filter event listener if present
     const zoneSelect = document.getElementById('top-prabhags-zone-filter');
     const selectedZone = zoneSelect ? zoneSelect.value : 'ALL';
+
+    if (zoneSelect && !zoneSelect.dataset.listenerAttached) {
+      zoneSelect.addEventListener('change', (e) => {
+        renderTop10PrabhagsChart(this.lastPatients || patients, e.target.value);
+      });
+      zoneSelect.dataset.listenerAttached = 'true';
+    }
+
+    this.lastPatients = patients;
+    renderTop10PrabhagsChart(patients, selectedZone);
+  }
+};
+
+// --- 1. RENDER TOP 10 HOTSPOT PRABHAGS (STACKED BAR) ---
+function renderTop10PrabhagsChart(records, selectedZone = 'ALL') {
+  if (!records || !Array.isArray(records)) return;
+
+  const prabhagMap = {};
+
+  records.forEach(row => {
+    let zone = row.Zone || row.zone || (row.zoneNum ? `Zone ${row.zoneNum}` : 'Zone 1');
+    
+    // Normalize zone filtering safely
+    if (selectedZone !== 'ALL') {
+      const targetZ = selectedZone.toString().toLowerCase().replace('zone', '').trim();
+      const rowZ = zone.toString().toLowerCase().replace('zone', '').trim();
+      if (targetZ !== rowZ && String(row.zoneNum) !== String(selectedZone)) return;
+    }
+
+    let prabhag = row.Prabhag || row.prabhag || row.prabhag_no || 'P0';
+    if (!prabhag.toString().startsWith('P') && prabhag !== 'P0') prabhag = `P${prabhag}`;
+    
+    const zoneLabel = zone.toString().toLowerCase().includes('zone') ? zone : `Zone ${zone}`;
+    const key = `${prabhag} (${zoneLabel})`;
+    const disease = (row.Disease || row.disease || '').toLowerCase();
+
+    if (!prabhagMap[key]) {
+      prabhagMap[key] = { label: key, total: 0, dengue: 0, chikungunya: 0, malaria: 0, other: 0 };
+    }
+
+    prabhagMap[key].total++;
+    if (disease.includes('dengue')) prabhagMap[key].dengue++;
+    else if (disease.includes('chikungunya') || disease.includes('chikun')) prabhagMap[key].chikungunya++;
+    else if (disease.includes('malaria')) prabhagMap[key].malaria++;
+    else prabhagMap[key].other++;
+  });
+
+  // Sort descending and get top 10
+  const top10 = Object.values(prabhagMap)
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 10);
+
+  const canvas = document.getElementById('topPrabhagsChart') || document.getElementById('chart-top-prabhags');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  if (window.topPrabhagsChartInstance) window.topPrabhagsChartInstance.destroy();
+  if (ChartManager && ChartManager.charts && ChartManager.charts['topPrabhagsChart']) {
+    ChartManager.charts['topPrabhagsChart'].destroy();
+  }
+
+  window.topPrabhagsChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: top10.map(item => item.label),
+      datasets: [
+        { label: 'Dengue', data: top10.map(i => i.dengue), backgroundColor: '#a855f7', borderColor: '#9333ea', borderWidth: 1, borderRadius: 4 },
+        { label: 'Chikungunya', data: top10.map(i => i.chikungunya), backgroundColor: '#ec4899', borderColor: '#db2777', borderWidth: 1, borderRadius: 4 },
+        { label: 'Malaria', data: top10.map(i => i.malaria), backgroundColor: '#06b6d4', borderColor: '#0891b2', borderWidth: 1, borderRadius: 4 },
+        { label: 'Others / Scrub', data: top10.map(i => i.other), backgroundColor: '#f59e0b', borderColor: '#d97706', borderWidth: 1, borderRadius: 4 }
+      ]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8', precision: 0 } },
+        y: { stacked: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#cbd5e1', font: { weight: 'bold' } } }
+      },
+      plugins: {
+        legend: { labels: { color: '#94a3b8', usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: {
+          callbacks: {
+            afterBody: (items) => {
+              const idx = items[0].dataIndex;
+              const item = top10[idx];
+              return `Total Case Burden: ${item.total} cases`;
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const footerElem = document.getElementById('top-prabhags-count-footer');
+  if (footerElem) {
+    footerElem.textContent = `Total Active Prabhags Tracked: ${Object.keys(prabhagMap).length}`;
+  }
+}
 
     if (zoneSelect && !zoneSelect.dataset.listenerAttached) {
       zoneSelect.addEventListener('change', () => {

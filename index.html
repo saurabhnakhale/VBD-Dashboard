@@ -394,7 +394,7 @@
             </div>
           </div>
           <div class="chart-container" style="height: 350px;">
-            <canvas id="chart-top-prabhags"></canvas>
+            <canvas id="topPrabhagsChart"></canvas>
           </div>
           <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #1e293b; background: rgba(15, 23, 42, 0.5);">
             <span id="top-prabhags-count-footer">Total Active Prabhags Tracked: 0</span>
@@ -403,19 +403,19 @@
         </div>
       </section>
 
-      <!-- Section 4: Case Density Heatmap Matrix -->
+      <!-- Section 4: Zone × Disease Heatmap Matrix -->
       <section class="dashboard-grid-full">
         <div class="chart-card">
           <div class="card-header">
             <div class="card-title-group">
-              <i class="fa-solid fa-table-cells card-title-icon"></i>
+              <i class="fa-solid fa-table-cells card-title-icon" style="color: #06b6d4;"></i>
               <div>
-                <h3 class="card-title">Zone vs. Month Outbreak Density Heatmap</h3>
-                <p class="card-subtitle">Spatial-temporal case intensity matrix across Nagpur Municipal Zones</p>
+                <h3 class="card-title">Zone × Disease Heatmap Matrix</h3>
+                <p class="card-subtitle">Spatial vector disease burden intensity matrix across Nagpur Municipal Zones</p>
               </div>
             </div>
           </div>
-          <div id="heatmap-container">
+          <div id="zoneDiseaseHeatmapContainer" style="overflow-x: auto; padding: 0.4rem;">
             <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading heatmap matrix...</div>
           </div>
         </div>
@@ -503,13 +503,13 @@
   </div>
 
   <!-- Application Logic Scripts with Cache-Busting Versioning -->
-  <script src="js/weatherManager.js?v=20260813_11"></script>
-  <script src="js/dataLoader.js?v=20260813_11"></script>
-  <script src="js/kpiManager.js?v=20260813_11"></script>
-  <script src="js/chartManager.js?v=20260813_11"></script>
-  <script src="js/heatmapManager.js?v=20260813_11"></script>
-  <script src="js/wardsData.js?v=20260813_11"></script>
-  <script src="js/mapManager.js?v=20260813_11"></script>
-  <script src="js/app.js?v=20260813_11"></script>
+  <script src="js/weatherManager.js?v=20260814_01"></script>
+  <script src="js/dataLoader.js?v=20260814_01"></script>
+  <script src="js/kpiManager.js?v=20260814_01"></script>
+  <script src="js/chartManager.js?v=20260814_01"></script>
+  <script src="js/heatmapManager.js?v=20260814_01"></script>
+  <script src="js/wardsData.js?v=20260814_01"></script>
+  <script src="js/mapManager.js?v=20260814_01"></script>
+  <script src="js/app.js?v=20260814_01"></script>
 </body>
 </html>
