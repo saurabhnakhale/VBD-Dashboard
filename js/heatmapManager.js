@@ -24,13 +24,13 @@ function renderZoneDiseaseHeatmap(records) {
   });
 
   records.forEach(row => {
-    let rawZone = row.Zone || row.zone || row['Zone Name'] || row.zoneName;
-    if (!rawZone && row.zoneNum) rawZone = `Zone ${row.zoneNum}`;
-    if (!rawZone) rawZone = 'Zone 1';
-    
-    // Normalize format like "1" or "Zone 1"
-    const zKey = rawZone.toString().toLowerCase().includes('zone') ? rawZone : `Zone ${rawZone}`;
-    
+    let rawZone = row.Zone || row.zone || row['Zone Name'] || row.zoneName || (row.zoneNum ? `Zone ${row.zoneNum}` : '');
+    if (!rawZone) return;
+
+    let zNum = parseInt(rawZone.toString().replace(/[^0-9]/g, ''), 10);
+    if (isNaN(zNum) || zNum < 1 || zNum > 10) return;
+    const zKey = `Zone ${zNum}`;
+
     if (!matrix[zKey]) matrix[zKey] = { dengue: 0, chikungunya: 0, malaria: 0, other: 0, total: 0 };
     
     const disease = (row.Disease || row.disease || '').toLowerCase();

@@ -704,20 +704,21 @@ function renderTop10PrabhagsChart(records, selectedZone = 'ALL') {
   const prabhagMap = {};
 
   records.forEach(row => {
-    let zone = row.Zone || row.zone || (row.zoneNum ? `Zone ${row.zoneNum}` : 'Zone 1');
-    
-    // Normalize zone filtering safely
+    let rawZone = row.Zone || row.zone || row['Zone Name'] || row.zoneName || (row.zoneNum ? `Zone ${row.zoneNum}` : 'Zone 1');
+    let zNum = parseInt(rawZone.toString().replace(/[^0-9]/g, ''), 10);
+    if (isNaN(zNum) || zNum < 1 || zNum > 10) zNum = 1;
+    const zoneStr = `Zone ${zNum}`;
+
     if (selectedZone !== 'ALL') {
-      const targetZ = selectedZone.toString().toLowerCase().replace('zone', '').trim();
-      const rowZ = zone.toString().toLowerCase().replace('zone', '').trim();
-      if (targetZ !== rowZ && String(row.zoneNum) !== String(selectedZone)) return;
+      const targetNum = parseInt(selectedZone.toString().replace(/[^0-9]/g, ''), 10);
+      if (!isNaN(targetNum) && zNum !== targetNum) return;
     }
 
-    let prabhag = row.Prabhag || row.prabhag || row.prabhag_no || 'P0';
-    if (!prabhag.toString().startsWith('P') && prabhag !== 'P0') prabhag = `P${prabhag}`;
-    
-    const zoneLabel = zone.toString().toLowerCase().includes('zone') ? zone : `Zone ${zone}`;
-    const key = `${prabhag} (${zoneLabel})`;
+    let prabhag = row.Prabhag || row.prabhag || row.prabhag_no || row.prabhagNum || 'P0';
+    let pStr = prabhag.toString().trim();
+    if (!pStr.startsWith('P') && pStr !== 'P0') pStr = `P${pStr}`;
+
+    const key = `${pStr} (${zoneStr})`;
     const disease = (row.Disease || row.disease || '').toLowerCase();
 
     if (!prabhagMap[key]) {
