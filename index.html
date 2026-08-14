@@ -255,10 +255,12 @@
 
       </section>
 
-      <!-- Full Width Row: 1. Epidemic Curve & Temporal Surge -->
-      <section class="dashboard-grid-full">
-        <div class="chart-card">
-          <div class="card-header" style="flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center;">
+      <!-- Section 2: 3 Rows x 2 Columns Grid Layout (6 Analytics Cards) -->
+      <section class="charts-3x2-grid">
+        
+        <!-- Card 1: Epidemic Curve & Temporal Surge -->
+        <div class="chart-box chart-card">
+          <div class="chart-box-header card-header" style="flex-wrap: wrap; gap: 0.5rem; justify-content: space-between; align-items: center;">
             <div class="card-title-group">
               <i class="fa-solid fa-chart-line card-title-icon"></i>
               <div>
@@ -276,17 +278,14 @@
             </div>
           </div>
 
-          <div class="chart-container">
+          <div class="chart-box-body chart-container chart-card-body">
             <canvas id="chart-epicurve-full"></canvas>
           </div>
         </div>
-      </section>
 
-      <!-- Section 2 & 3: 2x2 Grid Matrix Container (Demographics, Facility Burden, Zone Distribution, Top 10 Hotspots) -->
-      <section class="charts-2x2-grid">
-        <!-- Chart 2: Diverging Demographic Risk Pyramid -->
-        <div class="chart-card">
-          <div class="card-header">
+        <!-- Card 2: Diverging Demographic Risk Pyramid -->
+        <div class="chart-box chart-card">
+          <div class="chart-box-header card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-users-rays card-title-icon"></i>
               <div>
@@ -295,14 +294,14 @@
               </div>
             </div>
           </div>
-          <div class="chart-container chart-card-body">
+          <div class="chart-box-body chart-container chart-card-body">
             <canvas id="chart-demographics"></canvas>
           </div>
         </div>
 
-        <!-- Chart 3: Facility Burden Stacked Breakdown -->
-        <div class="chart-card">
-          <div class="card-header">
+        <!-- Card 3: Facility Burden Stacked Breakdown -->
+        <div class="chart-box chart-card">
+          <div class="chart-box-header card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-hospital card-title-icon"></i>
               <div>
@@ -311,31 +310,29 @@
               </div>
             </div>
           </div>
-          <div class="chart-container chart-card-body">
+          <div class="chart-box-body chart-container chart-card-body">
             <canvas id="chart-facilities"></canvas>
           </div>
         </div>
 
-        <!-- Chart 4: Dynamic Zone & Prabhag Case Distribution (With Control Header & Drill-Down) -->
-        <div class="chart-card">
-          <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem; justify-content: space-between; align-items: center;">
+        <!-- Card 4: Dynamic Zone & Prabhag Case Distribution -->
+        <div class="chart-box chart-card">
+          <div class="chart-box-header card-header" style="flex-wrap: wrap; gap: 0.75rem; justify-content: space-between; align-items: center;">
             <div class="card-title-group">
               <i class="fa-solid fa-map-location-dot card-title-icon"></i>
               <div>
                 <h3 class="card-title" id="zone-chart-title">4. Zone &amp; Prabhag Case Distribution</h3>
-                <p class="card-subtitle" id="zone-chart-subtitle">Stacked disease breakdown across NMC Municipal Zones 1–10 (Click any Zone to drill down into Prabhags)</p>
+                <p class="card-subtitle" id="zone-chart-subtitle">Stacked disease breakdown across NMC Municipal Zones 1–10 (Click any Zone to drill down)</p>
               </div>
             </div>
 
             <!-- Controls Toolbar above Chart 4 -->
             <div class="chart-controls-toolbar" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
-              <!-- View Toggle Switch (Zone View vs Prabhag View) -->
               <div class="pill-toggle-group" id="zone-view-toggle-group">
                 <button class="pill-btn active" id="btn-view-zone" data-view="zone">Zone View</button>
                 <button class="pill-btn" id="btn-view-prabhag" data-view="prabhag">Prabhag View</button>
               </div>
 
-              <!-- Zone Selector Dropdown -->
               <select id="zone-select-dropdown" class="filter-control" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 20px;">
                 <option value="ALL">All Zones (1-10)</option>
                 <option value="1">Zone 1</option>
@@ -350,29 +347,27 @@
                 <option value="10">Zone 10</option>
               </select>
 
-              <!-- Back to Zones Button (shown in Prabhag view) -->
               <button id="btn-back-to-zones" class="filter-reset-btn btn-sm" style="display: none; background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.35); color: var(--blue-accent); border-radius: 20px;">
                 <i class="fa-solid fa-arrow-left"></i> ← Back to All Zones
               </button>
             </div>
           </div>
 
-          <div class="chart-container chart-card-body">
+          <div class="chart-box-body chart-container chart-card-body">
             <canvas id="chart-zones"></canvas>
           </div>
         </div>
 
-        <!-- Component 1: Top 10 Hotspot Prabhags (Zone-wise Breakdown) -->
-        <div class="chart-card">
-          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <!-- Card 5: Top 10 Hotspot Prabhags (Zone-wise Breakdown) -->
+        <div class="chart-box chart-card">
+          <div class="chart-box-header card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
             <div class="card-title-group">
               <i class="fa-solid fa-chart-bar card-title-icon" style="color: #a855f7;"></i>
               <div>
-                <h3 class="card-title">Top 10 Hotspot Prabhags (Zone-wise Breakdown)</h3>
+                <h3 class="card-title">Top 10 Hotspot Prabhags</h3>
                 <p class="card-subtitle">Ranked top 10 highest-burden prabhags with stacked vector disease composition</p>
               </div>
             </div>
-            <!-- Zone Filter Dropdown -->
             <div style="display: flex; align-items: center; gap: 8px;">
               <label for="top-prabhags-zone-filter" style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Zone:</label>
               <select id="top-prabhags-zone-filter" class="form-select-sm" style="background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer;">
@@ -390,20 +385,18 @@
               </select>
             </div>
           </div>
-          <div class="chart-container chart-card-body" style="height: auto; flex: 1;">
+          <div class="chart-box-body chart-container chart-card-body">
             <canvas id="topPrabhagsChart"></canvas>
           </div>
-          <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #1e293b; background: rgba(15, 23, 42, 0.5);">
+          <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 4px 12px; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #1e293b; background: rgba(15, 23, 42, 0.5);">
             <span id="top-prabhags-count-footer">Total Active Prabhags Tracked: 0</span>
             <span style="font-style: italic;">Sorted by Total Cases</span>
           </div>
         </div>
-      </section>
 
-      <!-- Section 4: Zone × Disease Heatmap Matrix -->
-      <section class="full-width-section">
-        <div class="chart-card" style="height: auto; min-height: 250px;">
-          <div class="card-header">
+        <!-- Card 6: Zone × Disease Heatmap Matrix -->
+        <div class="chart-box chart-card">
+          <div class="chart-box-header card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-table-cells card-title-icon" style="color: #06b6d4;"></i>
               <div>
@@ -412,10 +405,11 @@
               </div>
             </div>
           </div>
-          <div id="zoneDiseaseHeatmapContainer" class="chart-card-body" style="overflow-x: auto; padding: 0.4rem;">
+          <div id="zoneDiseaseHeatmapContainer" class="chart-box-body chart-card-body" style="overflow-x: auto; padding: 0.4rem;">
             <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading heatmap matrix...</div>
           </div>
         </div>
+
       </section>
 
       <!-- Section 5: Geographical Mapping Area (Leaflet GIS & Sheet 2 High Risk Overlays) -->
@@ -500,13 +494,13 @@
   </div>
 
   <!-- Application Logic Scripts with Cache-Busting Versioning -->
-  <script src="js/weatherManager.js?v=20260814_07"></script>
-  <script src="js/dataLoader.js?v=20260814_07"></script>
-  <script src="js/kpiManager.js?v=20260814_07"></script>
-  <script src="js/chartManager.js?v=20260814_07"></script>
-  <script src="js/heatmapManager.js?v=20260814_07"></script>
-  <script src="js/wardsData.js?v=20260814_07"></script>
-  <script src="js/mapManager.js?v=20260814_07"></script>
-  <script src="js/app.js?v=20260814_07"></script>
+  <script src="js/weatherManager.js?v=20260814_08"></script>
+  <script src="js/dataLoader.js?v=20260814_08"></script>
+  <script src="js/kpiManager.js?v=20260814_08"></script>
+  <script src="js/chartManager.js?v=20260814_08"></script>
+  <script src="js/heatmapManager.js?v=20260814_08"></script>
+  <script src="js/wardsData.js?v=20260814_08"></script>
+  <script src="js/mapManager.js?v=20260814_08"></script>
+  <script src="js/app.js?v=20260814_08"></script>
 </body>
 </html>
