@@ -50,80 +50,180 @@ const App = {
     dateElement.textContent = todayStr;
   },
 
+// --- CUSTOM MULTI-SELECT DROPDOWN MANAGER ---
+const MultiSelectManager = {
+  instances: {},
+
+  init(id, labelDefault, options, onChangeCallback) {
+    const container = document.getElementById(id);
+    if (!container) return;
+
+    container.className = 'custom-multiselect filter-control';
+    container.innerHTML = `
+      <div class="multiselect-trigger">
+        <span class="multiselect-text">${labelDefault}</span>
+        <i class="fa-solid fa-chevron-down multiselect-caret"></i>
+      </div>
+      <div class="multiselect-dropdown">
+        <div style="padding: 6px 12px; border-bottom: 1px solid #1e293b; background: #0f172a;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 700; color: #38bdf8; cursor: pointer; user-select: none;">
+            <input type="checkbox" class="chk-select-all" checked style="accent-color: #3b82f6; width: 14px; height: 14px; cursor: pointer;">
+            Select All
+          </label>
+        </div>
+        <div class="multiselect-items-list"></div>
+      </div>
+    `;
+
+    const trigger = container.querySelector('.multiselect-trigger');
+    const chkSelectAll = container.querySelector('.chk-select-all');
+    const itemsList = container.querySelector('.multiselect-items-list');
+
+    this.instances[id] = {
+      container,
+      options,
+      selected: ['ALL'],
+      onChangeCallback,
+      labelDefault
+    };
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      document.querySelectorAll('.custom-multiselect').forEach(el => {
+        if (el !== container) el.classList.remove('open');
+      });
+      container.classList.toggle('open');
+    });
+
+    itemsList.innerHTML = options.map(opt => `
+      <label class="multiselect-item">
+        <input type="checkbox" value="${opt.value}" checked>
+        <span>${opt.label}</span>
+      </label>
+    `).join('');
+
+    const itemCheckboxes = itemsList.querySelectorAll('input[type="checkbox"]');
+
+    chkSelectAll.addEventListener('change', () => {
+      const isChecked = chkSelectAll.checked;
+      itemCheckboxes.forEach(cb => cb.checked = isChecked);
+      this.instances[id].selected = isChecked ? ['ALL'] : [];
+      this.updateTriggerText(id);
+      if (onChangeCallback) onChangeCallback(this.instances[id].selected);
+    });
+
+    itemCheckboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        const checkedBoxes = Array.from(itemCheckboxes).filter(c => c.checked);
+        if (checkedBoxes.length === itemCheckboxes.length) {
+          chkSelectAll.checked = true;
+          this.instances[id].selected = ['ALL'];
+        } else {
+          chkSelectAll.checked = false;
+          this.instances[id].selected = checkedBoxes.map(c => c.value);
+        }
+        this.updateTriggerText(id);
+        if (onChangeCallback) onChangeCallback(this.instances[id].selected);
+      });
+    });
+
+    this.updateTriggerText(id);
+  },
+
+  updateTriggerText(id) {
+    const inst = this.instances[id];
+    if (!inst) return;
+    const textSpan = inst.container.querySelector('.multiselect-text');
+    const chkSelectAll = inst.container.querySelector('.chk-select-all');
+
+    if (inst.selected.includes('ALL') || inst.selected.length === 0 || inst.selected.length === inst.options.length) {
+      textSpan.textContent = inst.labelDefault;
+      if (chkSelectAll) chkSelectAll.checked = true;
+    } else if (inst.selected.length === 1) {
+      const opt = inst.options.find(o => String(o.value) === String(inst.selected[0]));
+      textSpan.textContent = opt ? opt.label : inst.selected[0];
+    } else {
+      textSpan.textContent = `${inst.selected.length} Selected`;
+    }
+  },
+
+  getSelected(id) {
+    return this.instances[id] ? this.instances[id].selected : ['ALL'];
+  },
+
+  reset(id) {
+    const inst = this.instances[id];
+    if (!inst) return;
+    inst.selected = ['ALL'];
+    const chkSelectAll = inst.container.querySelector('.chk-select-all');
+    if (chkSelectAll) chkSelectAll.checked = true;
+    const itemCheckboxes = inst.container.querySelectorAll('.multiselect-items-list input[type="checkbox"]');
+    itemCheckboxes.forEach(cb => cb.checked = true);
+    this.updateTriggerText(id);
+  }
+};
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.custom-multiselect')) {
+    document.querySelectorAll('.custom-multiselect').forEach(el => el.classList.remove('open'));
+  }
+});
+
   populateFilterDropdowns() {
     // 1. Diseases
     const diseaseSet = new Set(this.allPatients.map(p => p.disease).filter(Boolean));
-    const diseaseSelect = document.getElementById('filter-disease');
-    if (diseaseSelect) {
-      diseaseSelect.innerHTML = '<option value="ALL">All Diseases</option>';
-      diseaseSet.forEach(d => {
-        diseaseSelect.innerHTML += `<option value="${d}">${d}</option>`;
-      });
-    }
+    const diseaseOptions = Array.from(diseaseSet).map(d => ({ value: d, label: d }));
+    MultiSelectManager.init('filter-disease', 'All Diseases', diseaseOptions, () => this.applyFiltersAndRender());
 
     // 2. Zones
-    const zoneSelect = document.getElementById('filter-zone');
-    if (zoneSelect) {
-      zoneSelect.innerHTML = '<option value="ALL">All Zones (1-10)</option>';
-      for (let z = 1; z <= 10; z++) {
-        const name = ZONE_MAP[z] || `Zone ${z}`;
-        zoneSelect.innerHTML += `<option value="${z}">${name}</option>`;
-      }
+    const zoneOptions = [];
+    for (let z = 1; z <= 10; z++) {
+      const name = ZONE_MAP[z] || `Zone ${z}`;
+      zoneOptions.push({ value: z, label: name });
     }
+    MultiSelectManager.init('filter-zone', 'All Zones (1-10)', zoneOptions, () => this.applyFiltersAndRender());
 
     // 3. Months
     const monthSet = new Set(this.allPatients.map(p => p.month).filter(Boolean));
-    const monthSelect = document.getElementById('filter-month');
-    if (monthSelect) {
-      monthSelect.innerHTML = '<option value="ALL">All Months</option>';
-      monthSet.forEach(m => {
-        monthSelect.innerHTML += `<option value="${m}">${m}</option>`;
-      });
-    }
+    const monthOptions = Array.from(monthSet).map(m => ({ value: m, label: m }));
+    MultiSelectManager.init('filter-month', 'All Months', monthOptions, () => this.applyFiltersAndRender());
 
-    // 4. Years (Replaces Prabhag & Age Group)
+    // 4. Years
     const yearSet = new Set(this.allPatients.map(p => p.year).filter(Boolean));
     const sortedYears = Array.from(yearSet).sort((a, b) => a - b);
-    const yearSelect = document.getElementById('filter-year');
-    if (yearSelect) {
-      yearSelect.innerHTML = '<option value="ALL">All Years</option>';
-      sortedYears.forEach(y => {
-        yearSelect.innerHTML += `<option value="${y}">${y}</option>`;
-      });
-    }
+    const yearOptions = sortedYears.map(y => ({ value: y, label: String(y) }));
+    MultiSelectManager.init('filter-year', 'All Years', yearOptions, () => this.applyFiltersAndRender());
+
+    // 5. Facility Type
+    const facilityOptions = [
+      { value: 'Urban Primary Health Center (UPHC)', label: 'Urban Primary Health Centers (UPHC)' },
+      { value: 'Tertiary Government Hospital', label: 'Tertiary Government Hospitals' },
+      { value: 'Private Hospital / Lab', label: 'Private Hospitals & Labs' }
+    ];
+    MultiSelectManager.init('filter-facility', 'All Facilities', facilityOptions, () => this.applyFiltersAndRender());
   },
 
   bindEvents() {
     const searchInput = document.getElementById('filter-search');
-    const diseaseSelect = document.getElementById('filter-disease');
-    const zoneSelect = document.getElementById('filter-zone');
-    const monthSelect = document.getElementById('filter-month');
-    const yearSelect = document.getElementById('filter-year');
     const startDateInput = document.getElementById('filter-start-date');
     const endDateInput = document.getElementById('filter-end-date');
-    const facilitySelect = document.getElementById('filter-facility');
     const resetBtn = document.getElementById('filter-reset-btn');
     const exportBtn = document.getElementById('btn-export-csv');
 
     if (searchInput) searchInput.addEventListener('input', () => this.applyFiltersAndRender());
-    if (diseaseSelect) diseaseSelect.addEventListener('change', () => this.applyFiltersAndRender());
-    if (zoneSelect) zoneSelect.addEventListener('change', () => this.applyFiltersAndRender());
-    if (monthSelect) monthSelect.addEventListener('change', () => this.applyFiltersAndRender());
-    if (yearSelect) yearSelect.addEventListener('change', () => this.applyFiltersAndRender());
     if (startDateInput) startDateInput.addEventListener('change', () => this.applyFiltersAndRender());
     if (endDateInput) endDateInput.addEventListener('change', () => this.applyFiltersAndRender());
-    if (facilitySelect) facilitySelect.addEventListener('change', () => this.applyFiltersAndRender());
 
     if (resetBtn) {
       resetBtn.addEventListener('click', () => {
         if (searchInput) searchInput.value = '';
-        if (diseaseSelect) diseaseSelect.value = 'ALL';
-        if (zoneSelect) zoneSelect.value = 'ALL';
-        if (monthSelect) monthSelect.value = 'ALL';
-        if (yearSelect) yearSelect.value = 'ALL';
+        MultiSelectManager.reset('filter-disease');
+        MultiSelectManager.reset('filter-zone');
+        MultiSelectManager.reset('filter-month');
+        MultiSelectManager.reset('filter-year');
+        MultiSelectManager.reset('filter-facility');
         if (startDateInput) startDateInput.value = '';
         if (endDateInput) endDateInput.value = '';
-        if (facilitySelect) facilitySelect.value = 'ALL';
         this.applyFiltersAndRender();
       });
     }
@@ -156,13 +256,13 @@ const App = {
 
   applyFiltersAndRender() {
     const searchVal = (document.getElementById('filter-search')?.value || '').toLowerCase().trim();
-    const diseaseVal = document.getElementById('filter-disease')?.value || 'ALL';
-    const zoneVal = document.getElementById('filter-zone')?.value || 'ALL';
-    const monthVal = document.getElementById('filter-month')?.value || 'ALL';
-    const yearVal = document.getElementById('filter-year')?.value || 'ALL';
+    const selectedDiseases = MultiSelectManager.getSelected('filter-disease');
+    const selectedZones = MultiSelectManager.getSelected('filter-zone');
+    const selectedMonths = MultiSelectManager.getSelected('filter-month');
+    const selectedYears = MultiSelectManager.getSelected('filter-year');
     const startDateVal = document.getElementById('filter-start-date')?.value || '';
     const endDateVal = document.getElementById('filter-end-date')?.value || '';
-    const facilityVal = document.getElementById('filter-facility')?.value || 'ALL';
+    const selectedFacilities = MultiSelectManager.getSelected('filter-facility');
 
     const startTs = startDateVal ? new Date(startDateVal).getTime() : null;
     const endTs = endDateVal ? new Date(endDateVal + 'T23:59:59').getTime() : null;
@@ -177,17 +277,25 @@ const App = {
         if (!nameMatch && !hospMatch && !addrMatch) return false;
       }
 
-      // 2. Disease Filter
-      if (diseaseVal !== 'ALL' && p.disease !== diseaseVal) return false;
+      // 2. Disease Multi-Select Filter
+      if (!selectedDiseases.includes('ALL') && selectedDiseases.length > 0) {
+        if (!selectedDiseases.includes(p.disease)) return false;
+      }
 
-      // 3. Zone Filter
-      if (zoneVal !== 'ALL' && p.zoneNum !== parseInt(zoneVal, 10)) return false;
+      // 3. Zone Multi-Select Filter
+      if (!selectedZones.includes('ALL') && selectedZones.length > 0) {
+        if (!selectedZones.map(Number).includes(p.zoneNum)) return false;
+      }
 
-      // 4. Month Filter
-      if (monthVal !== 'ALL' && p.month !== monthVal) return false;
+      // 4. Month Multi-Select Filter
+      if (!selectedMonths.includes('ALL') && selectedMonths.length > 0) {
+        if (!selectedMonths.includes(p.month)) return false;
+      }
 
-      // 5. Year Filter (New Slicer)
-      if (yearVal !== 'ALL' && String(p.year) !== String(yearVal)) return false;
+      // 5. Year Multi-Select Filter
+      if (!selectedYears.includes('ALL') && selectedYears.length > 0) {
+        if (!selectedYears.map(String).includes(String(p.year))) return false;
+      }
 
       // 6. Date Selector (Timeline Calendar Range)
       if (startTs || endTs) {
@@ -204,8 +312,10 @@ const App = {
         }
       }
 
-      // 7. Facility Type Filter
-      if (facilityVal !== 'ALL' && p.facilityType !== facilityVal) return false;
+      // 7. Facility Type Multi-Select Filter
+      if (!selectedFacilities.includes('ALL') && selectedFacilities.length > 0) {
+        if (!selectedFacilities.includes(p.facilityType)) return false;
+      }
 
       return true;
     });

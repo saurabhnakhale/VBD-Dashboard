@@ -104,36 +104,28 @@
           <input type="text" id="filter-search" class="filter-control" placeholder="Search Patient Name, Hospital, Address...">
         </div>
 
-        <!-- 2. Disease Slicer -->
+        <!-- 2. Disease Multi-Select -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-disease"><i class="fa-solid fa-virus"></i> DISEASE</label>
-          <select id="filter-disease" class="filter-control">
-            <option value="ALL">All Diseases</option>
-          </select>
+          <label class="filter-label"><i class="fa-solid fa-virus"></i> DISEASE</label>
+          <div id="filter-disease"></div>
         </div>
 
-        <!-- 3. Zone Slicer -->
+        <!-- 3. Zone Multi-Select -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-zone"><i class="fa-solid fa-map-location-dot"></i> ZONE</label>
-          <select id="filter-zone" class="filter-control">
-            <option value="ALL">All Zones (1-10)</option>
-          </select>
+          <label class="filter-label"><i class="fa-solid fa-map-location-dot"></i> ZONE</label>
+          <div id="filter-zone"></div>
         </div>
 
-        <!-- 4. Month Slicer -->
+        <!-- 4. Month Multi-Select -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-month"><i class="fa-solid fa-calendar-days"></i> MONTH</label>
-          <select id="filter-month" class="filter-control">
-            <option value="ALL">All Months</option>
-          </select>
+          <label class="filter-label"><i class="fa-solid fa-calendar-days"></i> MONTH</label>
+          <div id="filter-month"></div>
         </div>
 
-        <!-- 5. Year Slicer (Replaces Prabhag & Age Group) -->
+        <!-- 5. Year Multi-Select -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-year"><i class="fa-solid fa-calendar"></i> YEAR</label>
-          <select id="filter-year" class="filter-control">
-            <option value="ALL">All Years</option>
-          </select>
+          <label class="filter-label"><i class="fa-solid fa-calendar"></i> YEAR</label>
+          <div id="filter-year"></div>
         </div>
 
         <!-- 6. Date Timeline Selector (Calendar Range) -->
@@ -146,15 +138,10 @@
           </div>
         </div>
 
-        <!-- 7. Facility Type Slicer (Hospital Signage) -->
+        <!-- 7. Facility Type Multi-Select -->
         <div class="filter-group">
-          <label class="filter-label" for="filter-facility"><i class="fa-solid fa-hospital"></i> FACILITY TYPE</label>
-          <select id="filter-facility" class="filter-control">
-            <option value="ALL">All Facilities</option>
-            <option value="Urban Primary Health Center (UPHC)">Urban Primary Health Centers (UPHC)</option>
-            <option value="Tertiary Government Hospital">Tertiary Government Hospitals</option>
-            <option value="Private Hospital / Lab">Private Hospitals &amp; Labs</option>
-          </select>
+          <label class="filter-label"><i class="fa-solid fa-hospital"></i> FACILITY TYPE</label>
+          <div id="filter-facility"></div>
         </div>
 
         <!-- 8. Compact Reset Button -->
@@ -494,13 +481,13 @@
   </div>
 
   <!-- Application Logic Scripts with Cache-Busting Versioning -->
-  <script src="js/weatherManager.js?v=20260814_10"></script>
-  <script src="js/dataLoader.js?v=20260814_10"></script>
-  <script src="js/kpiManager.js?v=20260814_10"></script>
-  <script src="js/chartManager.js?v=20260814_10"></script>
-  <script src="js/heatmapManager.js?v=20260814_10"></script>
-  <script src="js/wardsData.js?v=20260814_10"></script>
-  <script src="js/mapManager.js?v=20260814_10"></script>
-  <script src="js/app.js?v=20260814_10"></script>
+  <script src="js/weatherManager.js?v=20260814_11"></script>
+  <script src="js/dataLoader.js?v=20260814_11"></script>
+  <script src="js/kpiManager.js?v=20260814_11"></script>
+  <script src="js/chartManager.js?v=20260814_11"></script>
+  <script src="js/heatmapManager.js?v=20260814_11"></script>
+  <script src="js/wardsData.js?v=20260814_11"></script>
+  <script src="js/mapManager.js?v=20260814_11"></script>
+  <script src="js/app.js?v=20260814_11"></script>
 </body>
 </html>
