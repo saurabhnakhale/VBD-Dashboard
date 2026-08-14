@@ -379,7 +379,7 @@ const ChartManager = {
     };
 
     if (this.currentZoneView === 'zone') {
-      if (titleElem) titleElem.textContent = '4. Zone & Prabhag Case Distribution';
+      if (titleElem) titleElem.textContent = '4. Zone & Prabhag Wise Case Distribution';
       if (subtitleElem) subtitleElem.textContent = 'Stacked disease breakdown across NMC Municipal Zones 1–10 (Click any Zone bar to drill down into Prabhags)';
 
       const zones = Array.from({ length: 10 }, (_, i) => `Zone ${i + 1}`);
