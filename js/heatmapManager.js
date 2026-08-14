@@ -50,16 +50,16 @@ function renderZoneDiseaseHeatmap(records) {
   }
 
   let html = `
-    <div style="overflow-x: auto; width: 100%; border: 1px solid #1e293b; border-radius: 8px;">
-      <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 12px; color: #f8fafc;">
+    <div style="overflow-x: auto; overflow-y: auto; max-height: 310px; width: 100%; border: 1px solid #1e293b; border-radius: 8px;" class="custom-scrollbar">
+      <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 11px; color: #f8fafc; line-height: 1.2;">
         <thead>
-          <tr style="background: #1e293b; color: #94a3b8;">
-            <th style="padding: 10px; border: 1px solid #334155; text-align: left;">Zone</th>
-            <th style="padding: 10px; border: 1px solid #334155; color: #a855f7;">Dengue</th>
-            <th style="padding: 10px; border: 1px solid #334155; color: #ec4899;">Chikungunya</th>
-            <th style="padding: 10px; border: 1px solid #334155; color: #06b6d4;">Malaria</th>
-            <th style="padding: 10px; border: 1px solid #334155; color: #f59e0b;">Scrub / JE</th>
-            <th style="padding: 10px; border: 1px solid #334155; color: #ffffff;">Total Burden</th>
+          <tr style="background: #1e293b; color: #94a3b8; position: sticky; top: 0; z-index: 2;">
+            <th style="padding: 6px 8px; border: 1px solid #334155; text-align: left;">Zone</th>
+            <th style="padding: 6px 8px; border: 1px solid #334155; color: #a855f7;">Dengue</th>
+            <th style="padding: 6px 8px; border: 1px solid #334155; color: #ec4899;">Chikungunya</th>
+            <th style="padding: 6px 8px; border: 1px solid #334155; color: #06b6d4;">Malaria</th>
+            <th style="padding: 6px 8px; border: 1px solid #334155; color: #f59e0b;">Scrub / JE</th>
+            <th style="padding: 6px 8px; border: 1px solid #334155; color: #ffffff;">Total Burden</th>
           </tr>
         </thead>
         <tbody>
@@ -68,12 +68,12 @@ function renderZoneDiseaseHeatmap(records) {
             const zName = (typeof ZONE_MAP !== 'undefined' && ZONE_MAP[zNum]) ? ` (${ZONE_MAP[zNum].split(' ')[0]})` : '';
             return `
             <tr>
-              <td style="padding: 8px 12px; font-weight: bold; text-align: left; background: #0f172a; border: 1px solid #1e293b;">${z}${zName}</td>
-              <td style="padding: 8px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].dengue : 0)}">${matrix[z] ? matrix[z].dengue : 0}</td>
-              <td style="padding: 8px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].chikungunya : 0)}">${matrix[z] ? matrix[z].chikungunya : 0}</td>
-              <td style="padding: 8px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].malaria : 0)}">${matrix[z] ? matrix[z].malaria : 0}</td>
-              <td style="padding: 8px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].other : 0)}">${matrix[z] ? matrix[z].other : 0}</td>
-              <td style="padding: 8px; border: 1px solid #1e293b; background: #131d31; font-weight: bold; color: #ffffff;">${matrix[z] ? matrix[z].total : 0}</td>
+              <td style="padding: 4px 8px; font-weight: bold; text-align: left; background: #0f172a; border: 1px solid #1e293b; white-space: nowrap;">${z}${zName}</td>
+              <td style="padding: 4px 6px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].dengue : 0)}">${matrix[z] ? matrix[z].dengue : 0}</td>
+              <td style="padding: 4px 6px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].chikungunya : 0)}">${matrix[z] ? matrix[z].chikungunya : 0}</td>
+              <td style="padding: 4px 6px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].malaria : 0)}">${matrix[z] ? matrix[z].malaria : 0}</td>
+              <td style="padding: 4px 6px; border: 1px solid #1e293b; ${getHeatColor(matrix[z] ? matrix[z].other : 0)}">${matrix[z] ? matrix[z].other : 0}</td>
+              <td style="padding: 4px 6px; border: 1px solid #1e293b; background: #131d31; font-weight: bold; color: #ffffff;">${matrix[z] ? matrix[z].total : 0}</td>
             </tr>
           `}).join('')}
         </tbody>
