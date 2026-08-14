@@ -1,55 +1,3 @@
-/**
- * App.js - Application Main Controller
- * Handles global state, filter events, search, table pagination, CSV export, live date, and dynamic slicers.
- */
-
-const App = {
-  allPatients: [],
-  filteredPatients: [],
-  highRiskAreas: [],
-  
-  currentPage: 1,
-  pageSize: 15,
-
-  async init() {
-    console.log("[App] Starting Vector-Borne Disease Dashboard...");
-    
-    this.purgeLegacyContainers();
-    this.setupLiveDate();
-
-    try {
-      const data = await DataLoader.init();
-      this.allPatients = data.patients;
-      this.highRiskAreas = data.highRiskAreas;
-      this.filteredPatients = [...this.allPatients];
-
-      this.populateFilterDropdowns();
-      this.bindEvents();
-      this.applyFiltersAndRender();
-
-      console.log("[App] Dashboard successfully initialized!");
-    } catch (err) {
-      console.error("[App] Failed to initialize dashboard:", err);
-    }
-  },
-
-  purgeLegacyContainers() {
-    document.querySelectorAll('.hotspot-matrix-wrapper, #hotspot-matrix-container').forEach(el => el.remove());
-    const legacyContainer = document.getElementById('zone-prabhag-heatmap-container');
-    if (legacyContainer && !legacyContainer.querySelector('#topPrabhagsChart')) {
-      legacyContainer.remove();
-    }
-  },
-
-  setupLiveDate() {
-    const dateElement = document.getElementById('current-date-text');
-    if (!dateElement) return;
-
-    const options = { day: 'numeric', month: 'long', year: 'numeric' };
-    const todayStr = new Date().toLocaleDateString('en-GB', options);
-    dateElement.textContent = todayStr;
-  },
-
 // --- CUSTOM MULTI-SELECT DROPDOWN MANAGER ---
 const MultiSelectManager = {
   instances: {},
@@ -168,6 +116,53 @@ document.addEventListener('click', (e) => {
     document.querySelectorAll('.custom-multiselect').forEach(el => el.classList.remove('open'));
   }
 });
+
+const App = {
+  allPatients: [],
+  filteredPatients: [],
+  highRiskAreas: [],
+  
+  currentPage: 1,
+  pageSize: 15,
+
+  async init() {
+    console.log("[App] Starting Vector-Borne Disease Dashboard...");
+    
+    this.purgeLegacyContainers();
+    this.setupLiveDate();
+
+    try {
+      const data = await DataLoader.init();
+      this.allPatients = data.patients;
+      this.highRiskAreas = data.highRiskAreas;
+      this.filteredPatients = [...this.allPatients];
+
+      this.populateFilterDropdowns();
+      this.bindEvents();
+      this.applyFiltersAndRender();
+
+      console.log("[App] Dashboard successfully initialized!");
+    } catch (err) {
+      console.error("[App] Failed to initialize dashboard:", err);
+    }
+  },
+
+  purgeLegacyContainers() {
+    document.querySelectorAll('.hotspot-matrix-wrapper, #hotspot-matrix-container').forEach(el => el.remove());
+    const legacyContainer = document.getElementById('zone-prabhag-heatmap-container');
+    if (legacyContainer && !legacyContainer.querySelector('#topPrabhagsChart')) {
+      legacyContainer.remove();
+    }
+  },
+
+  setupLiveDate() {
+    const dateElement = document.getElementById('current-date-text');
+    if (!dateElement) return;
+
+    const options = { day: 'numeric', month: 'long', year: 'numeric' };
+    const todayStr = new Date().toLocaleDateString('en-GB', options);
+    dateElement.textContent = todayStr;
+  },
 
   populateFilterDropdowns() {
     // 1. Diseases
