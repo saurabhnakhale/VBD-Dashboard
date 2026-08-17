@@ -121,6 +121,7 @@ const App = {
   allPatients: [],
   filteredPatients: [],
   highRiskAreas: [],
+  entomologyRecords: [],
   
   currentPage: 1,
   pageSize: 15,
@@ -135,6 +136,7 @@ const App = {
       const data = await DataLoader.init();
       this.allPatients = data.patients;
       this.highRiskAreas = data.highRiskAreas;
+      this.entomologyRecords = data.entomologyRecords || [];
       this.filteredPatients = [...this.allPatients];
 
       this.populateFilterDropdowns();
@@ -321,6 +323,13 @@ const App = {
     ChartManager.renderAll(this.filteredPatients);
     HeatmapManager.render(this.filteredPatients);
     MapManager.render(this.filteredPatients, this.highRiskAreas);
+    if (typeof EntomologyManager !== 'undefined') {
+      EntomologyManager.render(
+        this.entomologyRecords,
+        selectedZones.includes('ALL') ? 'ALL' : selectedZones[0],
+        selectedMonths.includes('ALL') ? 'ALL' : selectedMonths[0]
+      );
+    }
     this.renderTable();
   },
 

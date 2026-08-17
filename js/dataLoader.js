@@ -21,27 +21,34 @@ const DataLoader = {
   sheet1Fallback: "./data/linelist_fallback.csv",
   sheet2Url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ7XwXF_aiMSrrvyTTdNFA87B9tN43KjaCLtwrc1gF_gf2E9VIwF6DSeb7-G2HUFCmTkPyCCKxOitKd/pub?gid=334334882&single=true&output=csv",
   sheet2Fallback: "./data/highrisk_fallback.csv",
+  sheet3Url: "https://docs.google.com/spreadsheets/d/1LI9hNsozPx4TO66prv_QwM8ikILP3aenQxGSy6pQ4FI/export?format=csv&gid=302283847",
+  sheet3Fallback: "./data/entomology_fallback.csv",
 
   rawPatients: [],
   rawHighRisk: [],
+  rawEntomology: [],
   patients: [],
   highRiskAreas: [],
+  entomologyRecords: [],
 
   async init() {
     try {
-      const [sheet1Data, sheet2Data] = await Promise.all([
+      const [sheet1Data, sheet2Data, sheet3Data] = await Promise.all([
         this.fetchCsv(this.sheet1Url, this.sheet1Fallback),
-        this.fetchCsv(this.sheet2Url, this.sheet2Fallback)
+        this.fetchCsv(this.sheet2Url, this.sheet2Fallback),
+        this.fetchCsv(this.sheet3Url, this.sheet3Fallback)
       ]);
 
       this.rawPatients = sheet1Data;
       this.rawHighRisk = sheet2Data;
+      this.rawEntomology = sheet3Data;
 
       this.processHighRiskData();
       this.processPatientData();
+      this.processEntomologyData();
 
-      console.log(`[DataLoader] Loaded ${this.patients.length} patient records and ${this.highRiskAreas.length} high-risk zones.`);
-      return { patients: this.patients, highRiskAreas: this.highRiskAreas };
+      console.log(`[DataLoader] Loaded ${this.patients.length} patient records, ${this.highRiskAreas.length} high-risk zones, and ${this.entomologyRecords.length} entomological records.`);
+      return { patients: this.patients, highRiskAreas: this.highRiskAreas, entomologyRecords: this.entomologyRecords };
     } catch (err) {
       console.error("[DataLoader] Critical error initializing data:", err);
       throw err;
@@ -183,5 +190,61 @@ const DataLoader = {
         matchedHighRiskLocality
       };
     });
+  },
+
+  processEntomologyData() {
+    const records = [];
+    let currentMonth = '';
+
+    if (!Array.isArray(this.rawEntomology)) return;
+
+    this.rawEntomology.forEach(row => {
+      const keys = Object.keys(row);
+      if (keys.length < 5) return;
+
+      const monthCol = (row[keys[0]] || '').trim();
+      const zoneCol = (row[keys[1]] || '').trim();
+
+      if (monthCol && !monthCol.toLowerCase().includes('total')) {
+        currentMonth = monthCol;
+      }
+
+      if (!zoneCol || zoneCol.toLowerCase().includes('total') || zoneCol.toLowerCase().includes('grand total')) {
+        return;
+      }
+
+      const zMatch = zoneCol.match(/\d+/);
+      const zoneNum = zMatch ? parseInt(zMatch[0], 10) : 0;
+      if (!zoneNum || zoneNum < 1 || zoneNum > 10) return;
+
+      const inspectedHouses = parseFloat(row[keys[2]]) || 0;
+      const positiveHouses = parseFloat(row[keys[3]]) || 0;
+      const inspectedContainers = parseFloat(row[keys[4]]) || 0;
+      const positiveContainers = parseFloat(row[keys[5]]) || 0;
+
+      let hi = parseFloat(row['HI'] || row[keys[6]]) || 0;
+      let ci = parseFloat(row['CI'] || row[keys[7]]) || 0;
+      let bi = parseFloat(row['BI'] || row[keys[8]]) || 0;
+
+      if (!hi && inspectedHouses > 0) hi = parseFloat(((positiveHouses / inspectedHouses) * 100).toFixed(1));
+      if (!ci && inspectedContainers > 0) ci = parseFloat(((positiveContainers / inspectedContainers) * 100).toFixed(1));
+      if (!bi && inspectedHouses > 0) bi = parseFloat(((positiveContainers / inspectedHouses) * 100).toFixed(1));
+
+      records.push({
+        month: currentMonth || 'Unspecified',
+        zoneCol,
+        zoneNum,
+        zoneName: ZONE_MAP[zoneNum] || `Zone ${zoneNum}`,
+        inspectedHouses,
+        positiveHouses,
+        inspectedContainers,
+        positiveContainers,
+        hi,
+        ci,
+        bi
+      });
+    });
+
+    this.entomologyRecords = records;
   }
 };
