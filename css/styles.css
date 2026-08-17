@@ -1039,3 +1039,23 @@ body {
   border: 1px solid rgba(245, 158, 11, 0.5);
 }
 
+/* GIS Map Ward Label Badges */
+.ward-label-badge {
+  background: rgba(15, 23, 42, 0.85) !important;
+  border: 1px solid rgba(56, 189, 248, 0.45) !important;
+  border-radius: 4px !important;
+  color: #f8fafc !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  padding: 1px 5px !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6) !important;
+  white-space: nowrap !important;
+  pointer-events: none !important;
+}
+
+.ward-label-badge.has-cases {
+  background: rgba(225, 29, 72, 0.88) !important;
+  border-color: #f43f5e !important;
+  color: #ffffff !important;
+}
+

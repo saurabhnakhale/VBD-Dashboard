@@ -1,7 +1,7 @@
 /**
- * MapManager.js - Leaflet.js GIS spatial mapping with Complete Ward GeoJSON boundaries (wards_simplified.geojson / WARDS_GEOJSON),
- * Ward-to-Zone Mapping (ward_zone_mapping.json / WARD_ZONE_MAPPING), high-contrast choropleth polygons,
- * and hospital nodes (Hotspot circles disabled for initial clean ward map testing).
+ * MapManager.js - Leaflet.js GIS Spatial Mapping Engine
+ * Uses Ward GeoJSON boundaries (WARDS_GEOJSON), Ward-to-Zone Mapping (WARD_ZONE_MAPPING),
+ * choropleth polygons with case heat density, center label badges, and healthcare nodes.
  */
 
 // Coordinates for Nagpur Localities & Landmarks
@@ -99,7 +99,7 @@ const MapManager = {
 
   extractPrabhagNumber(nameStr) {
     if (!nameStr) return null;
-    const match = nameStr.match(/\d+/);
+    const match = String(nameStr).match(/\d+/);
     return match ? parseInt(match[0], 10) : null;
   },
 
@@ -115,20 +115,30 @@ const MapManager = {
     if (typeof WARD_ZONE_MAPPING !== 'undefined' && Array.isArray(WARD_ZONE_MAPPING)) {
       WARD_ZONE_MAPPING.forEach(item => {
         if (item.ward && item.zone) {
-          wardZoneLookup[item.ward.trim()] = item.zone.trim();
+          const wTrim = item.ward.trim();
+          const pNum = this.extractPrabhagNumber(wTrim);
+          if (pNum) {
+            wardZoneLookup[pNum] = item.zone.trim();
+            wardZoneLookup[wTrim] = item.zone.trim();
+            wardZoneLookup[`Prabhag ${pNum}`] = item.zone.trim();
+            wardZoneLookup[`P${pNum}`] = item.zone.trim();
+          }
         }
       });
     }
 
     // 2. Calculate per-prabhag case breakdown
     const prabhagCounts = {};
-    patients.forEach(p => {
-      const pNum = p.prabhag ? parseInt(p.prabhag, 10) : null;
-      if (pNum) {
-        if (!prabhagCounts[pNum]) {
-          prabhagCounts[pNum] = { Dengue: 0, Chikungunya: 0, Malaria: 0, ScrubTyphus: 0, Total: 0 };
-        }
-        const dStr = (p.disease || '').toLowerCase();
+    for (let p = 1; p <= 38; p++) {
+      prabhagCounts[p] = { Dengue: 0, Chikungunya: 0, Malaria: 0, ScrubTyphus: 0, Total: 0 };
+    }
+
+    patients.forEach(patient => {
+      let pNum = patient.prabhagNum || this.extractPrabhagNumber(patient.prabhag);
+      if (!pNum && patient.prabhag) pNum = parseInt(patient.prabhag, 10);
+
+      if (pNum && prabhagCounts[pNum]) {
+        const dStr = (patient.disease || '').toLowerCase();
         if (dStr.includes('chikun')) prabhagCounts[pNum].Chikungunya++;
         else if (dStr.includes('malaria')) prabhagCounts[pNum].Malaria++;
         else if (dStr.includes('japanese') || dStr.includes('encephalitis') || dStr.includes('je') || dStr.includes('scrub') || dStr.includes('typhus')) prabhagCounts[pNum].ScrubTyphus++;
@@ -150,55 +160,81 @@ const MapManager = {
 
           let fillColor = '#6366f1';
           let strokeColor = '#38bdf8';
-          let weight = 2.0;
+          let weight = 1.8;
+          let fillOpacity = 0.35;
 
           if (count > 15) {
             fillColor = '#ef4444';
             strokeColor = '#f43f5e';
             weight = 2.5;
+            fillOpacity = 0.75;
           } else if (count > 8) {
             fillColor = '#ec4899';
             strokeColor = '#f472b6';
             weight = 2.2;
+            fillOpacity = 0.65;
           } else if (count > 3) {
             fillColor = '#f59e0b';
             strokeColor = '#fbbf24';
             weight = 2.0;
+            fillOpacity = 0.55;
           } else if (count > 0) {
             fillColor = '#06b6d4';
             strokeColor = '#22d3ee';
             weight = 1.8;
+            fillOpacity = 0.45;
           }
 
           return {
             fillColor: fillColor,
-            fillOpacity: 0.65,
+            fillOpacity: fillOpacity,
             color: strokeColor,
             weight: weight,
             opacity: 0.95
           };
         },
         onEachFeature: (feature, layer) => {
-          const wardName = (feature.properties?.name || 'Ward').trim();
-          const mappedZone = wardZoneLookup[wardName] || (feature.properties?.description || 'NMC Zone').trim();
-          const pNum = this.extractPrabhagNumber(wardName);
+          const rawName = (feature.properties?.name || 'Ward').trim();
+          const pNum = this.extractPrabhagNumber(rawName);
+          const mappedZone = (pNum && wardZoneLookup[pNum]) ? wardZoneLookup[pNum] : (wardZoneLookup[rawName] || 'Municipal Zone');
+
           const pData = (pNum && prabhagCounts[pNum])
             ? prabhagCounts[pNum]
             : { Total: 0, Dengue: 0, Chikungunya: 0, Malaria: 0, ScrubTyphus: 0 };
 
+          // Add permanent center label badge for Prabhag and Case Count
+          if (pNum) {
+            const badgeClass = pData.Total > 0 ? 'ward-label-badge has-cases' : 'ward-label-badge';
+            layer.bindTooltip(`P-${pNum}: ${pData.Total}`, {
+              permanent: true,
+              direction: 'center',
+              className: badgeClass
+            });
+          }
+
+          // Rich Popup details
           layer.bindPopup(`
-            <div style="color: #0f172a; padding: 4px; min-width: 200px;">
-              <strong style="color: #4f46e5; font-size: 14px;">🏛️ ${wardName}</strong><br/>
-              <span style="color: #475569; font-size: 12px;"><b>Municipal Zone:</b> ${mappedZone}</span>
-              <hr style="margin: 6px 0; border: 0; border-top: 1px solid #cbd5e1;"/>
-              <div style="font-size: 13px; font-weight: bold; color: #0f172a; margin-bottom: 4px;">
-                📊 Active Case Burden: <span style="color: #dc2626;">${pData.Total} cases</span>
+            <div style="color: #0f172a; padding: 6px; min-width: 220px; font-family: sans-serif;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <strong style="color: #4f46e5; font-size: 14px;">🏛️ Prabhag No. ${pNum || rawName}</strong>
+                <span style="background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold;">P-${pNum || '?'}</span>
               </div>
-              <div style="font-size: 11px; color: #334155; line-height: 1.5;">
-                • 🦟 <b>Dengue:</b> ${pData.Dengue}<br/>
-                • 🦠 <b>Chikungunya:</b> ${pData.Chikungunya}<br/>
-                • 🔬 <b>Malaria:</b> ${pData.Malaria}<br/>
-                • 🐛 <b>Scrub Typhus / JE:</b> ${pData.ScrubTyphus}
+              <div style="color: #475569; font-size: 12px; margin-bottom: 6px;">
+                <b>Zone:</b> ${mappedZone}
+              </div>
+              
+              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+                <div style="font-size: 13px; font-weight: 800; color: #0f172a; display: flex; justify-content: space-between;">
+                  <span>Active Patient Burden:</span>
+                  <span style="color: #dc2626; font-size: 14px;">${pData.Total} cases</span>
+                </div>
+              </div>
+
+              <div style="font-size: 11px; color: #334155; line-height: 1.6;">
+                <div style="display: flex; justify-content: space-between;"><span>• 🦟 Dengue:</span> <b>${pData.Dengue}</b></div>
+                <div style="display: flex; justify-content: space-between;"><span>• 🦠 Chikungunya:</span> <b>${pData.Chikungunya}</b></div>
+                <div style="display: flex; justify-content: space-between;"><span>• 🔬 Malaria:</span> <b>${pData.Malaria}</b></div>
+                <div style="display: flex; justify-content: space-between;"><span>• 🐛 Scrub Typhus / JE:</span> <b>${pData.ScrubTyphus}</b></div>
               </div>
             </div>
           `);
@@ -206,7 +242,7 @@ const MapManager = {
           layer.on({
             mouseover: (e) => {
               const l = e.target;
-              l.setStyle({ weight: 3.5, color: '#ffffff', fillOpacity: 0.9 });
+              l.setStyle({ weight: 3.5, color: '#ffffff', fillOpacity: 0.85 });
               if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
                 l.bringToFront();
               }
@@ -234,9 +270,7 @@ const MapManager = {
       }
     }
 
-    // 4. Hotspot Circles Overlay (Disabled per user request for testing clean Ward map)
-
-    // 5. Plot Hospitals
+    // 4. Plot Hospitals & Healthcare Facilities
     Object.entries(HOSPITAL_COORDS).forEach(([hospName, coords]) => {
       const hospIcon = L.divIcon({
         className: 'custom-hosp-marker',
@@ -247,9 +281,9 @@ const MapManager = {
 
       const marker = L.marker(coords, { icon: hospIcon });
       marker.bindPopup(`
-        <div style="color: #0f172a;">
-          <strong style="color: #10b981;">🏥 ${hospName}</strong><br/>
-          <i>Healthcare Notification Facility</i>
+        <div style="color: #0f172a; padding: 4px;">
+          <strong style="color: #10b981; font-size: 13px;">🏥 ${hospName}</strong><br/>
+          <span style="font-size: 11px; color: #64748b;">Healthcare Notification Facility</span>
         </div>
       `);
       this.markersGroup.addLayer(marker);
