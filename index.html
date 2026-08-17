@@ -351,49 +351,46 @@
             <div class="card-title-group">
               <i class="fa-solid fa-chart-bar card-title-icon" style="color: #a855f7;"></i>
               <div>
-                <h3 class="card-title">Top 10 Hotspot Prabhags</h3>
-                <p class="card-subtitle">Ranked top 10 highest-burden prabhags with stacked vector disease composition</p>
-              </div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <label for="top-prabhags-zone-filter" style="font-size: 0.8rem; color: #94a3b8; font-weight: 600;">Zone:</label>
-              <select id="top-prabhags-zone-filter" class="form-select-sm" style="background: #0f172a; border: 1px solid #334155; color: #f8fafc; border-radius: 6px; padding: 4px 8px; font-size: 0.8rem; cursor: pointer;">
-                <option value="ALL">All Zones</option>
-                <option value="1">Zone 1 (Laxmi Nagar)</option>
-                <option value="2">Zone 2 (Dharmpeth)</option>
-                <option value="3">Zone 3 (Hanuman Nagar)</option>
-                <option value="4">Zone 4 (Dhantoli)</option>
-                <option value="5">Zone 5 (Nehru Nagar)</option>
-                <option value="6">Zone 6 (Gandhibag)</option>
-                <option value="7">Zone 7 (Satranjipura)</option>
-                <option value="8">Zone 8 (Lakadganj)</option>
-                <option value="9">Zone 9 (AashiNagar)</option>
-                <option value="10">Zone 10 (Mangalwari)</option>
-              </select>
-            </div>
+          <div class="chart-box-header chart-card-header">
+            <h3>4. Zone &amp; Prabhag Wise Case Distribution</h3>
+            <span style="font-size: 0.72rem; color: #94a3b8;">Case Count Across Zones 1-10</span>
           </div>
-          <div class="chart-box-body chart-container chart-card-body">
+          <div class="chart-box-body chart-card-body">
+            <canvas id="chart-zone-prabhag"></canvas>
+          </div>
+        </div>
+
+        <!-- Card 5: Top 10 Hotspot Prabhags -->
+        <div class="chart-box chart-card">
+          <div class="chart-box-header chart-card-header">
+            <h3>Top 10 Hotspot Prabhags</h3>
+            <select id="top-prabhags-zone-filter" class="filter-control" style="width: auto; padding: 2px 8px; font-size: 0.75rem; height: 26px;">
+              <option value="ALL">All Zones (1-10)</option>
+              <option value="1">Zone 1 (Laxmi Nagar)</option>
+              <option value="2">Zone 2 (Dharampeth)</option>
+              <option value="3">Zone 3 (Hanuman Nagar)</option>
+              <option value="4">Zone 4 (Dhantoli)</option>
+              <option value="5">Zone 5 (Nehru Nagar)</option>
+              <option value="6">Zone 6 (Gandhibagh)</option>
+              <option value="7">Zone 7 (Satranjipura)</option>
+              <option value="8">Zone 8 (Lakadganj)</option>
+              <option value="9">Zone 9 (Ashi Nagar)</option>
+              <option value="10">Zone 10 (Mangalwari)</option>
+            </select>
+          </div>
+          <div class="chart-box-body chart-card-body">
             <canvas id="topPrabhagsChart"></canvas>
-          </div>
-          <div class="card-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 4px 12px; font-size: 0.75rem; color: #94a3b8; border-top: 1px solid #1e293b; background: rgba(15, 23, 42, 0.5);">
-            <span id="top-prabhags-count-footer">Total Active Prabhags Tracked: 0</span>
-            <span style="font-style: italic;">Sorted by Total Cases</span>
           </div>
         </div>
 
         <!-- Card 6: Zone × Disease Heatmap Matrix -->
         <div class="chart-box chart-card">
-          <div class="chart-box-header card-header">
-            <div class="card-title-group">
-              <i class="fa-solid fa-table-cells card-title-icon" style="color: #06b6d4;"></i>
-              <div>
-                <h3 class="card-title">Zone × Disease Heatmap Matrix</h3>
-                <p class="card-subtitle">Spatial vector disease burden intensity matrix across Nagpur Municipal Zones</p>
-              </div>
-            </div>
+          <div class="chart-box-header chart-card-header">
+            <h3>Zone × Disease Heatmap Matrix</h3>
+            <span style="font-size: 0.72rem; color: #94a3b8;">Spatial Outbreak Intensity</span>
           </div>
-          <div id="zoneDiseaseHeatmapContainer" class="chart-box-body chart-card-body" style="overflow-x: auto; padding: 0.4rem;">
-            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading heatmap matrix...</div>
+          <div id="zoneDiseaseHeatmapContainer" class="chart-box-body chart-card-body custom-scrollbar" style="overflow-y: auto;">
+            <div style="text-align: center; padding: 2rem; color: var(--text-muted);">Loading spatial matrix...</div>
           </div>
         </div>
 
@@ -401,7 +398,7 @@
 
       <!-- Section 5: Geographical Mapping Area (Leaflet GIS & Sheet 2 High Risk Overlays) -->
       <section class="full-width-section">
-        <div class="chart-card" style="height: auto; min-height: 480px;">
+        <div class="chart-card" style="height: auto; min-height: 520px;">
           <div class="card-header">
             <div class="card-title-group">
               <i class="fa-solid fa-earth-asia card-title-icon"></i>
@@ -411,7 +408,7 @@
               </div>
             </div>
           </div>
-          <div id="map-container" class="chart-card-body" style="min-height: 420px;"></div>
+          <div id="map-container" class="chart-card-body"></div>
         </div>
       </section>
 
@@ -475,59 +472,6 @@
         </div>
       </section>
 
-      <!-- Section 6: Detailed Patient Linelist Data Table -->
-      <section class="table-card">
-        <div class="card-header">
-          <div class="card-title-group">
-            <i class="fa-solid fa-table-list card-title-icon"></i>
-            <div>
-              <h3 class="card-title">Patient Linelist Explorer</h3>
-              <p class="card-subtitle">Filterable database with all required healthcare columns</p>
-            </div>
-          </div>
-          <button id="btn-export-csv" class="filter-reset-btn" style="background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.3); color: var(--blue-accent);">
-            <i class="fa-solid fa-file-csv"></i> Export Filtered CSV
-          </button>
-        </div>
-
-        <div class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Sr. No.</th>
-                <th>Month &amp; Year</th>
-                <th>Patient's Name</th>
-                <th>Address</th>
-                <th>Age</th>
-                <th>Sex</th>
-                <th>Disease</th>
-                <th>Name of Hospital</th>
-                <th>Date of Notification</th>
-                <th>Zone</th>
-                <th>Prabhag</th>
-                <th>Sheet 2 High-Risk Status</th>
-              </tr>
-            </thead>
-            <tbody id="table-body">
-              <tr>
-                <td colspan="12" style="text-align: center; padding: 2rem; color: var(--text-muted);">
-                  Loading patient database...
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div class="table-footer">
-          <span id="table-count-info">Showing 0 of 0 records</span>
-          <div class="pagination-controls">
-            <button id="btn-prev-page" class="btn-page" disabled><i class="fa-solid fa-chevron-left"></i> Previous</button>
-            <span id="table-page-info" style="font-weight: 600;">Page 1</span>
-            <button id="btn-next-page" class="btn-page"><i class="fa-solid fa-chevron-right"></i> Next</button>
-          </div>
-        </div>
-      </section>
-
     </main>
 
     <!-- Footer -->
@@ -541,14 +485,14 @@
   </div>
 
   <!-- Application Logic Scripts with Cache-Busting Versioning -->
-  <script src="js/weatherManager.js?v=20260817_GIS_MAPPING"></script>
-  <script src="js/dataLoader.js?v=20260817_GIS_MAPPING"></script>
-  <script src="js/kpiManager.js?v=20260817_GIS_MAPPING"></script>
-  <script src="js/chartManager.js?v=20260817_GIS_MAPPING"></script>
-  <script src="js/heatmapManager.js?v=20260817_GIS_MAPPING"></script>
-  <script src="js/wardsData.js?v=20260817_GIS_MAPPING"></script>
-  <script src="js/mapManager.js?v=20260817_GIS_MAPPING"></script>
-  <script src="js/entomologyManager.js?v=20260817_GIS_MAPPING"></script>
-  <script src="js/app.js?v=20260817_GIS_MAPPING"></script>
+  <script src="js/weatherManager.js?v=20260817_MAP_FIX_02"></script>
+  <script src="js/dataLoader.js?v=20260817_MAP_FIX_02"></script>
+  <script src="js/kpiManager.js?v=20260817_MAP_FIX_02"></script>
+  <script src="js/chartManager.js?v=20260817_MAP_FIX_02"></script>
+  <script src="js/heatmapManager.js?v=20260817_MAP_FIX_02"></script>
+  <script src="js/wardsData.js?v=20260817_MAP_FIX_02"></script>
+  <script src="js/mapManager.js?v=20260817_MAP_FIX_02"></script>
+  <script src="js/entomologyManager.js?v=20260817_MAP_FIX_02"></script>
+  <script src="js/app.js?v=20260817_MAP_FIX_02"></script>
 </body>
 </html>

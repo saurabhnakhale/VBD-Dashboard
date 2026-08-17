@@ -74,27 +74,53 @@ const MapManager = {
   hasFittedBounds: false,
 
   init() {
-    if (this.map) return;
+    const container = document.getElementById('map-container');
+    if (!container) return;
 
-    // Center on Nagpur
-    this.map = L.map('map-container', {
-      center: [21.1458, 79.0882],
-      zoom: 12,
-      zoomControl: true
-    });
+    if (this.map) {
+      this.map.invalidateSize();
+      return;
+    }
 
-    // Dark Tile Layer (CartoDB Dark Matter)
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-      subdomains: 'abcd',
-      maxZoom: 19
-    }).addTo(this.map);
+    try {
+      // Center on Nagpur
+      this.map = L.map('map-container', {
+        center: [21.1458, 79.0882],
+        zoom: 12,
+        zoomControl: true
+      });
 
-    this.geoJsonGroup = L.layerGroup().addTo(this.map);
-    this.highRiskGroup = L.layerGroup().addTo(this.map);
-    this.markersGroup = L.layerGroup().addTo(this.map);
+      // Primary Tile Layer: CartoDB Dark Matter
+      const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19
+      });
 
-    this.addMapLegend();
+      // Fallback Tile Layer: OpenStreetMap
+      const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19
+      });
+
+      darkLayer.on('tileerror', () => {
+        console.warn('[MapManager] CartoDB tiles failed, switching to OpenStreetMap fallback.');
+        if (this.map.hasLayer(darkLayer)) {
+          this.map.removeLayer(darkLayer);
+          osmLayer.addTo(this.map);
+        }
+      });
+
+      darkLayer.addTo(this.map);
+
+      this.geoJsonGroup = L.layerGroup().addTo(this.map);
+      this.highRiskGroup = L.layerGroup().addTo(this.map);
+      this.markersGroup = L.layerGroup().addTo(this.map);
+
+      this.addMapLegend();
+    } catch (err) {
+      console.error('[MapManager] Error initializing Leaflet map:', err);
+    }
   },
 
   extractPrabhagNumber(nameStr) {
@@ -105,6 +131,7 @@ const MapManager = {
 
   async render(patients, highRiskAreas) {
     this.init();
+    if (!this.map) return;
 
     this.geoJsonGroup.clearLayers();
     this.markersGroup.clearLayers();
@@ -133,20 +160,22 @@ const MapManager = {
       prabhagCounts[p] = { Dengue: 0, Chikungunya: 0, Malaria: 0, ScrubTyphus: 0, Total: 0 };
     }
 
-    patients.forEach(patient => {
-      let pNum = patient.prabhagNum || this.extractPrabhagNumber(patient.prabhag);
-      if (!pNum && patient.prabhag) pNum = parseInt(patient.prabhag, 10);
+    if (Array.isArray(patients)) {
+      patients.forEach(patient => {
+        let pNum = patient.prabhagNum || this.extractPrabhagNumber(patient.prabhag);
+        if (!pNum && patient.prabhag) pNum = parseInt(patient.prabhag, 10);
 
-      if (pNum && prabhagCounts[pNum]) {
-        const dStr = (patient.disease || '').toLowerCase();
-        if (dStr.includes('chikun')) prabhagCounts[pNum].Chikungunya++;
-        else if (dStr.includes('malaria')) prabhagCounts[pNum].Malaria++;
-        else if (dStr.includes('japanese') || dStr.includes('encephalitis') || dStr.includes('je') || dStr.includes('scrub') || dStr.includes('typhus')) prabhagCounts[pNum].ScrubTyphus++;
-        else prabhagCounts[pNum].Dengue++;
+        if (pNum && prabhagCounts[pNum]) {
+          const dStr = (patient.disease || '').toLowerCase();
+          if (dStr.includes('chikun')) prabhagCounts[pNum].Chikungunya++;
+          else if (dStr.includes('malaria')) prabhagCounts[pNum].Malaria++;
+          else if (dStr.includes('japanese') || dStr.includes('encephalitis') || dStr.includes('je') || dStr.includes('scrub') || dStr.includes('typhus')) prabhagCounts[pNum].ScrubTyphus++;
+          else prabhagCounts[pNum].Dengue++;
 
-        prabhagCounts[pNum].Total++;
-      }
-    });
+          prabhagCounts[pNum].Total++;
+        }
+      });
+    }
 
     // 3. Load bundled GeoJSON features (Complete coverage WARDS_GEOJSON)
     let geoData = (typeof WARDS_GEOJSON !== 'undefined' && WARDS_GEOJSON) ? WARDS_GEOJSON : this.geoJsonData;
@@ -202,7 +231,6 @@ const MapManager = {
             ? prabhagCounts[pNum]
             : { Total: 0, Dengue: 0, Chikungunya: 0, Malaria: 0, ScrubTyphus: 0 };
 
-          // Add permanent center label badge for Prabhag and Case Count
           if (pNum) {
             const badgeClass = pData.Total > 0 ? 'ward-label-badge has-cases' : 'ward-label-badge';
             layer.bindTooltip(`P-${pNum}: ${pData.Total}`, {
@@ -212,7 +240,6 @@ const MapManager = {
             });
           }
 
-          // Rich Popup details
           layer.bindPopup(`
             <div style="color: #0f172a; padding: 6px; min-width: 220px; font-family: sans-serif;">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -256,17 +283,13 @@ const MapManager = {
 
       this.geoJsonGroup.addLayer(geoJsonLayer);
 
-      // Fit map bounds to GeoJSON on initial load
-      if (!this.hasFittedBounds) {
-        try {
-          const bounds = geoJsonLayer.getBounds();
-          if (bounds.isValid()) {
-            this.map.fitBounds(bounds, { padding: [20, 20] });
-            this.hasFittedBounds = true;
-          }
-        } catch (e) {
-          console.warn('fitBounds warning:', e);
+      try {
+        const bounds = geoJsonLayer.getBounds();
+        if (bounds.isValid()) {
+          this.map.fitBounds(bounds, { padding: [20, 20] });
         }
+      } catch (e) {
+        console.warn('fitBounds warning:', e);
       }
     }
 
@@ -288,6 +311,13 @@ const MapManager = {
       `);
       this.markersGroup.addLayer(marker);
     });
+
+    setTimeout(() => {
+      if (this.map) this.map.invalidateSize();
+    }, 100);
+    setTimeout(() => {
+      if (this.map) this.map.invalidateSize();
+    }, 400);
   },
 
   addMapLegend() {

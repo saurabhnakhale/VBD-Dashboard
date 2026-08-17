@@ -676,6 +676,17 @@ body {
   overflow: hidden;
 }
 
+#map-container {
+  width: 100% !important;
+  height: 480px !important;
+  min-height: 450px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #0b1120;
+}
+
 /* Sleek Dark Theme Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
