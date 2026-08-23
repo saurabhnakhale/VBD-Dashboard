@@ -1070,3 +1070,56 @@ body {
   color: #ffffff !important;
 }
 
+/* Image 2 Exact Ward Centroid Number Badge Styling */
+.ward-centroid-badge-wrapper {
+  background: transparent !important;
+  border: none !important;
+}
+
+.ward-centroid-badge {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 11px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #1d4ed8;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  text-align: center;
+}
+
+.ward-centroid-badge.badge-critical {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #ffffff;
+}
+
+.ward-centroid-badge.badge-cases {
+  background: #ffffff;
+  color: #0f172a;
+  border-color: #1d4ed8;
+}
+
+.ward-centroid-badge.badge-zero {
+  background: #dcfce7;
+  color: #166534;
+  border-color: #22c55e;
+}
+
+/* Outbreak Radial Heat Glow */
+@keyframes pulseGlow {
+  0% { fill-opacity: 0.35; }
+  50% { fill-opacity: 0.55; }
+  100% { fill-opacity: 0.35; }
+}
+
+.outbreak-heat-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+
