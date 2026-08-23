@@ -399,49 +399,19 @@
 
       </section>
 
-      <!-- Section 5: Geographical Mapping Area (Leaflet GIS Patients Map View) -->
+      <!-- Section 5: Geographical Mapping Area (Leaflet GIS & Sheet 2 High Risk Overlays) -->
       <section class="full-width-section">
-        <div class="chart-card" style="height: auto; min-height: 580px; position: relative;">
-          <div class="card-header" style="flex-wrap: wrap; gap: 0.75rem; justify-content: space-between; align-items: center; background: #ffffff; color: #0f172a; border-bottom: 1px solid #e2e8f0; border-top-left-radius: 12px; border-top-right-radius: 12px; padding: 12px 18px;">
-            
-            <div class="card-title-group" style="display: flex; align-items: center; gap: 10px;">
-              <i class="fa-solid fa-map-location-dot card-title-icon" style="color: #dc2626; font-size: 1.3rem;"></i>
+        <div class="chart-card" style="height: auto; min-height: 520px;">
+          <div class="card-header">
+            <div class="card-title-group">
+              <i class="fa-solid fa-earth-asia card-title-icon"></i>
               <div>
-                <h3 class="card-title" style="color: #0f172a; font-weight: 800; font-size: 1.15rem; margin: 0;">📍 Patients Map View</h3>
-                <p class="card-subtitle" style="color: #64748b; font-size: 0.8rem; margin: 0;">Interactive Spatial Vector Mapping with Nagpur Municipal Corporation Boundary &amp; Ward Numbers</p>
+                <h3 class="card-title">Geographical Case Mapping</h3>
+                <p class="card-subtitle">Interactive spatial plotting of ward boundaries, hospital nodes, and Sheet 2 high-risk localities</p>
               </div>
             </div>
-
-            <!-- Top Toolbar Controls (Image 2 style) -->
-            <div class="map-top-toolbar" style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
-              <button id="btn-outbreak-playback" class="pill-btn-danger" style="background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; font-weight: 700; border-radius: 20px; padding: 5px 14px; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-film"></i> Epidemic Outbreak Playback
-              </button>
-
-              <!-- Map View Modes (Image 2 Radio Options) -->
-              <div class="map-view-modes" style="display: flex; align-items: center; gap: 12px; font-size: 0.82rem; font-weight: 600; color: #334155;">
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                  <input type="radio" name="mapViewMode" value="cluster" checked style="accent-color: #2563eb;"> Patient Cluster View
-                </label>
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                  <input type="radio" name="mapViewMode" value="wardCount" style="accent-color: #2563eb;"> Ward-wise Exact Count View
-                </label>
-                <label style="cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                  <input type="radio" name="mapViewMode" value="allPoints" style="accent-color: #2563eb;"> All Cases Points View
-                </label>
-              </div>
-
-              <!-- Basemap Toggle Button -->
-              <button id="btn-toggle-basemap" class="pill-btn" style="background: #f1f5f9; border: 1px solid #cbd5e1; color: #1e293b; font-weight: 700; border-radius: 20px; padding: 4px 12px; font-size: 0.78rem; cursor: pointer;">
-                <i class="fa-solid fa-layer-group"></i> <span id="basemap-mode-text">Dark Basemap</span>
-              </button>
-            </div>
-
           </div>
-
-          <div style="position: relative; width: 100%; min-height: 520px;">
-            <div id="map-container" class="chart-card-body" style="height: 520px; width: 100%; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;"></div>
-          </div>
+          <div id="map-container" class="chart-card-body"></div>
         </div>
       </section>
 
