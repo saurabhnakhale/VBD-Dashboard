@@ -83,21 +83,20 @@ const MapManager = {
         zoomControl: true
       });
 
-      // Primary Dark Tile Layer: CartoDB Dark Matter
-      const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        subdomains: 'abcd',
+      // Primary Dark Tile Layer: Esri World Dark Gray Canvas (100% Free, No API Key Required)
+      const darkLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri, HERE, Garmin, FAO, NOAA, USGS, NGA, EPA, USDA, NPS',
         maxZoom: 19
       });
 
-      // Fallback Tile Layer: OpenStreetMap
+      // Fallback Tile Layer: OpenStreetMap Standard (100% Free, No API Key Required)
       const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors',
         maxZoom: 19
       });
 
       darkLayer.on('tileerror', () => {
-        console.warn('[MapManager] CartoDB tiles failed, switching to OpenStreetMap fallback.');
+        console.warn('[MapManager] Primary tiles failed, switching to OpenStreetMap fallback.');
         if (this.map.hasLayer(darkLayer)) {
           this.map.removeLayer(darkLayer);
           osmLayer.addTo(this.map);
