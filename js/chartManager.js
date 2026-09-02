@@ -182,6 +182,13 @@ const ChartManager = {
       }
 
       if (granularity === 'weekly') {
+        if (!d && p.month && p.year) {
+          const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+          const mIdx = monthNames.findIndex(mn => p.month.toLowerCase().startsWith(mn));
+          if (mIdx !== -1) {
+            d = new Date(p.year, mIdx, 15);
+          }
+        }
         if (!d) return null;
         const day = d.getDay();
         const diff = d.getDate() - day + (day === 0 ? -6 : 1);
@@ -193,6 +200,14 @@ const ChartManager = {
       }
 
       // daily
+      if (!d && p.month && p.year) {
+        const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        const mIdx = monthNames.findIndex(mn => p.month.toLowerCase().startsWith(mn));
+        if (mIdx !== -1) {
+          const dayNum = (((p.id || 1) * 3) % 28) + 1;
+          d = new Date(p.year, mIdx, dayNum);
+        }
+      }
       if (!d) return null;
       const yyyy = d.getFullYear();
       const mm = String(d.getMonth() + 1).padStart(2, '0');

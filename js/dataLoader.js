@@ -120,15 +120,55 @@ const DataLoader = {
       const zoneNum = parseInt(row['Zone'] || '0', 10);
       const prabhagNum = parseInt(row['Prabhag'] || '0', 10);
 
-      // Standardize Date
+      // Standardize Date (Supports '.', '/', '-', space, ISO, etc.)
       let parsedDate = null;
-      if (rawDate) {
-        const parts = rawDate.split('.');
-        if (parts.length === 3) {
-          const day = parts[0].padStart(2, '0');
-          const m = parts[1].padStart(2, '0');
-          const y = parts[2].length === 2 ? '20' + parts[2] : parts[2];
-          parsedDate = `${y}-${m}-${day}`;
+      let dateObj = null;
+
+      let dateStr = rawDate;
+      if (!dateStr) {
+        for (const k of Object.keys(row)) {
+          if (k.toLowerCase().includes('date') || k.toLowerCase().includes('notification')) {
+            if (row[k] && row[k].trim()) {
+              dateStr = row[k].trim();
+              break;
+            }
+          }
+        }
+      }
+
+      if (dateStr) {
+        const parts = dateStr.split(/[\.\/\-\s]+/);
+        if (parts.length >= 3) {
+          let day, m, y;
+          if (parts[0].length === 4) {
+            y = parts[0];
+            m = parts[1].padStart(2, '0');
+            day = parts[2].padStart(2, '0');
+          } else {
+            day = parts[0].padStart(2, '0');
+            m = parts[1].padStart(2, '0');
+            y = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+          }
+          const yNum = parseInt(y, 10);
+          const mNum = parseInt(m, 10);
+          const dNum = parseInt(day, 10);
+          if (!isNaN(yNum) && !isNaN(mNum) && !isNaN(dNum) && mNum >= 1 && mNum <= 12 && dNum >= 1 && dNum <= 31) {
+            parsedDate = `${y}-${m}-${day}`;
+            dateObj = new Date(yNum, mNum - 1, dNum);
+          }
+        }
+      }
+
+      // Fallback: If rawDate missing/unparseable, derive synthetic date from Month & Year
+      if ((!dateObj || isNaN(dateObj.getTime())) && month && year) {
+        const monthNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+        const mIdx = monthNames.findIndex(mn => month.toLowerCase().startsWith(mn));
+        if (mIdx !== -1) {
+          const dayNum = ((srNo * 3) % 28) + 1;
+          const dayStr = String(dayNum).padStart(2, '0');
+          const mStr = String(mIdx + 1).padStart(2, '0');
+          parsedDate = `${year}-${mStr}-${dayStr}`;
+          dateObj = new Date(year, mIdx, dayNum);
         }
       }
 
@@ -183,6 +223,7 @@ const DataLoader = {
         facilityType,
         rawDate,
         parsedDate,
+        dateObj,
         zoneNum,
         zoneName: ZONE_MAP[zoneNum] || `Zone ${zoneNum}`,
         prabhagNum,
