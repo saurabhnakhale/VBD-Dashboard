@@ -1,52 +1,13 @@
 /**
- * MapManager.js - GIS Spatial Mapping Engine
- * Complete implementation matching user's reference images:
- * 1. Expandable Layer Control Box (Default OSM, Clean Gray, Satellite View, Topographic Map)
- * 2. Map Centering Target Icon Button (re-centers & fits bounds to Nagpur Municipal Corporation)
- * 3. Zoom Controls (+ / -)
- * 4. Centroid Ward Badges (9, 26, 52, 29, 43, 34, 117, etc.)
- * 5. Disease Types & Case Density Floating UI Panels
- * 6. Time-Series Epidemic Outbreak Playback & Map View Modes
+ * MapManager.js - Clean GIS Spatial Ward Choropleth Mapping Engine
+ * 1. 38 Ward GeoJSON choropleth polygons with density heat fill & crisp blue borders
+ * 2. Centroid circular ward badges (P-1 to P-38)
+ * 3. Layer selector box (Default OSM, Clean Gray, Satellite, Topographic)
+ * 4. Target re-centering button (🎯) & Zoom +/- controls
+ * 5. Floating Disease Types & Case Density panels
  */
 
-// Locality & Hospital Coordinates
-const LOCALITY_COORDS = {
-  "Borgaon": [21.1850, 79.0550],
-  "Bhupesh Nagar": [21.1880, 79.0520],
-  "Gorewada": [21.1950, 79.0480],
-  "Zingabai Takli": [21.1920, 79.0700],
-  "Gittikhadan": [21.1750, 79.0510],
-  "Jaripatka": [21.1860, 79.0900],
-  "Patel Nagar": [21.1830, 79.0560],
-  "Katol Road": [21.1700, 79.0600],
-  "Seminary Hills": [21.1620, 79.0550],
-  "Friends Colony": [21.1780, 79.0490],
-  "Deepak Nagar": [21.1760, 79.0540],
-  "Dharampeth": [21.1440, 79.0660],
-  "Shankar Nagar": [21.1380, 79.0680],
-  "Futala": [21.1540, 79.0480],
-  "Laxmi Nagar": [21.1210, 79.0650],
-  "Chatrapati Nagar": [21.1120, 79.0680],
-  "Pratap Nagar": [21.1180, 79.0550],
-  "Sonegaon": [21.0920, 79.0540],
-  "Hanuman Nagar": [21.1250, 79.0950],
-  "Manewada": [21.1020, 79.1020],
-  "Hudkeshwar": [21.0900, 79.1150],
-  "Dhantoli": [21.1350, 79.0820],
-  "Ajni": [21.1200, 79.0880],
-  "Manish Nagar": [21.0980, 79.0780],
-  "Nandanvan": [21.1360, 79.1200],
-  "Wathoda": [21.1420, 79.1380],
-  "Mahal": [21.1450, 79.1020],
-  "Mominpura": [21.1560, 79.0950],
-  "Satranjipura": [21.1680, 79.1050],
-  "Itwari": [21.1580, 79.1100],
-  "Lakadganj": [21.1520, 79.1250],
-  "Pardi": [21.1600, 79.1450],
-  "Nari": [21.2010, 79.0950],
-  "Vaishali Nagar": [21.1850, 79.1150]
-};
-
+// Hospital Locations (Healthcare Facilities)
 const HOSPITAL_COORDS = {
   "IGMC": [21.1540, 79.0880],
   "KT Nagar UPHC": [21.1730, 79.0530],
@@ -65,7 +26,6 @@ const MapManager = {
   geoJsonGroup: null,
   wardBadgesGroup: null,
   markersGroup: null,
-  heatGlowGroup: null,
   
   // Layer Base Maps (100% Free, NO API KEY)
   baseLayers: {},
@@ -73,13 +33,6 @@ const MapManager = {
 
   currentPatients: [],
   geoDataBounds: null,
-  mapViewMode: 'cluster', // 'cluster', 'wardCount', 'allPoints'
-
-  // Playback states
-  isPlaying: false,
-  playbackTimer: null,
-  playbackIndex: 0,
-  uniqueDates: [],
 
   init() {
     const container = document.getElementById('map-container');
@@ -95,7 +48,7 @@ const MapManager = {
       this.map = L.map('map-container', {
         center: [21.1458, 79.0882],
         zoom: 12,
-        zoomControl: false, // We will add custom styled zoom & center controls
+        zoomControl: false,
         attributionControl: false
       });
 
@@ -124,7 +77,6 @@ const MapManager = {
       this.activeBaseLayer.addTo(this.map);
 
       // 3. Initialize Feature Groups
-      this.heatGlowGroup = L.layerGroup().addTo(this.map);
       this.geoJsonGroup = L.layerGroup().addTo(this.map);
       this.wardBadgesGroup = L.layerGroup().addTo(this.map);
       this.markersGroup = L.layerGroup().addTo(this.map);
@@ -134,9 +86,6 @@ const MapManager = {
 
       // 5. Add Bottom-Left Floating Cards (Disease Types & Case Density)
       this.addFloatingCards();
-
-      // 6. Bind Mode Switcher & Outbreak Playback Event Listeners
-      this.bindControlsEvents();
 
     } catch (err) {
       console.error('[MapManager] Error initializing Leaflet map:', err);
@@ -151,7 +100,6 @@ const MapManager = {
     });
     layerControl.addTo(this.map);
 
-    // Customize Layer Control Box HTML labels matching Image 1
     setTimeout(() => {
       const container = layerControl.getContainer();
       if (container) {
@@ -186,7 +134,6 @@ const MapManager = {
         </button>
       `;
 
-      // Prevent map drag when clicking controls
       L.DomEvent.disableClickPropagation(div);
       return div;
     };
@@ -237,7 +184,6 @@ const MapManager = {
 
     this.currentPatients = patients || [];
 
-    this.heatGlowGroup.clearLayers();
     this.geoJsonGroup.clearLayers();
     this.wardBadgesGroup.clearLayers();
     this.markersGroup.clearLayers();
@@ -259,7 +205,7 @@ const MapManager = {
       });
     }
 
-    // 2. Calculate per-prabhag & disease counts
+    // 2. Calculate per-prabhag & disease counts accurately
     const totalCounts = { Chikungunya: 0, Dengue: 0, Malaria: 0, JE: 0 };
     const prabhagCounts = {};
     for (let p = 1; p <= 38; p++) {
@@ -268,7 +214,7 @@ const MapManager = {
 
     if (Array.isArray(patients)) {
       patients.forEach(patient => {
-        let pNum = patient.prabhagNum || this.extractPrabhagNumber(patient.prabhag);
+        let pNum = patient.prabhagNum || this.extractPrabhagNumber(patient.prabhag) || this.extractPrabhagNumber(patient.ward) || this.extractPrabhagNumber(patient.Ward_Name);
         if (!pNum && patient.prabhag) pNum = parseInt(patient.prabhag, 10);
 
         const dStr = (patient.disease || '').toLowerCase();
@@ -292,28 +238,6 @@ const MapManager = {
           prabhagCounts[pNum][diseaseCat]++;
           prabhagCounts[pNum].Total++;
         }
-
-        // Plot Point Markers if mode is 'cluster' or 'allPoints'
-        if ((this.mapViewMode === 'cluster' || this.mapViewMode === 'allPoints') && (patient.lat || patient.latitude || LOCALITY_COORDS[patient.locality])) {
-          const lat = patient.lat || patient.latitude || LOCALITY_COORDS[patient.locality]?.[0];
-          const lng = patient.lng || patient.longitude || LOCALITY_COORDS[patient.locality]?.[1];
-          if (lat && lng) {
-            let mColor = '#2563eb';
-            if (diseaseCat === 'Dengue') mColor = '#ea580c';
-            else if (diseaseCat === 'Malaria') mColor = '#1e1b4b';
-            else if (diseaseCat === 'JE') mColor = '#a855f7';
-
-            const pointMarker = L.circleMarker([lat, lng], {
-              radius: 5,
-              fillColor: mColor,
-              color: '#ffffff',
-              weight: 1.5,
-              fillOpacity: 0.9
-            });
-            pointMarker.bindPopup(`<b>${patient.name || 'Patient'}</b><br/>Disease: ${patient.disease}<br/>Prabhag: ${pNum || 'N/A'}`);
-            this.markersGroup.addLayer(pointMarker);
-          }
-        }
       });
     }
 
@@ -330,20 +254,21 @@ const MapManager = {
           const pNum = this.extractPrabhagNumber(rawName);
           const count = pNum && prabhagCounts[pNum] ? prabhagCounts[pNum].Total : 0;
 
-          // Image Color Density Scheme
-          let fillColor = '#dcfce7'; // Zero Cases
+          // Choropleth Density Color Scale
+          let fillColor = '#dcfce7'; // Zero Cases (Light Green)
           let fillOpacity = 0.85;
 
-          if (count > 15) fillColor = '#dc2626';     // Critical / High Red
-          else if (count >= 9) fillColor = '#ea580c'; // Moderate-High Orange
-          else if (count >= 4) fillColor = '#f59e0b'; // Moderate Yellow-Orange
-          else if (count >= 1) fillColor = '#fde047'; // Low Cases Yellow
-          else fillColor = '#dcfce7';                 // Zero Cases Light Green
+          if (count > 50) fillColor = '#b91c1c';       // Critical Dark Red
+          else if (count > 25) fillColor = '#dc2626';  // High Red
+          else if (count > 10) fillColor = '#ea580c';  // Moderate-High Orange
+          else if (count > 4) fillColor = '#f59e0b';   // Moderate Yellow-Orange
+          else if (count >= 1) fillColor = '#fde047';  // Low Cases Light Yellow
+          else fillColor = '#dcfce7';                  // Zero Cases
 
           return {
             fillColor: fillColor,
             fillOpacity: fillOpacity,
-            color: '#1d4ed8', // Crisp blue boundary outline (Image 1 & 2 match)
+            color: '#1d4ed8', // Crisp blue boundary outline
             weight: 2.2,
             opacity: 1
           };
@@ -354,29 +279,15 @@ const MapManager = {
           const mappedZone = (pNum && wardZoneLookup[pNum]) ? wardZoneLookup[pNum] : (wardZoneLookup[rawName] || 'Municipal Zone');
           const pData = (pNum && prabhagCounts[pNum]) ? prabhagCounts[pNum] : { Total: 0, Dengue: 0, Chikungunya: 0, Malaria: 0, JE: 0 };
 
-          // Centroid Circular Ward Badge (Image Exact Match)
+          // Centroid Circular Ward Badge
           try {
             const centroid = layer.getBounds().getCenter();
             if (pNum && centroid) {
-              
-              // Radial Outbreak Heat Glow for High-Burden Wards
-              if (pData.Total >= 15) {
-                const glowCircle = L.circle(centroid, {
-                  radius: 1200,
-                  color: 'transparent',
-                  fillColor: '#dc2626',
-                  fillOpacity: 0.4,
-                  className: 'outbreak-heat-glow'
-                });
-                this.heatGlowGroup.addLayer(glowCircle);
-              }
-
-              // Circular Badge DivIcon
               const badgeIcon = L.divIcon({
                 className: 'ward-centroid-badge-wrapper',
-                html: `<div class="ward-centroid-circle-badge ${pData.Total > 15 ? 'badge-critical' : (pData.Total > 0 ? 'badge-cases' : 'badge-zero')}">${pNum}</div>`,
-                iconSize: [28, 28],
-                iconAnchor: [14, 14]
+                html: `<div class="ward-centroid-circle-badge ${pData.Total > 25 ? 'badge-critical' : (pData.Total > 0 ? 'badge-cases' : 'badge-zero')}">${pNum}</div>`,
+                iconSize: [26, 26],
+                iconAnchor: [13, 13]
               });
 
               const badgeMarker = L.marker(centroid, { icon: badgeIcon, interactive: false });
@@ -431,16 +342,15 @@ const MapManager = {
 
       try {
         this.geoDataBounds = geoJsonLayer.getBounds();
-        if (this.geoDataBounds.isValid() && !this.hasFittedBounds) {
+        if (this.geoDataBounds.isValid()) {
           this.map.fitBounds(this.geoDataBounds, { padding: [25, 25] });
-          this.hasFittedBounds = true;
         }
       } catch (e) {
         console.warn('fitBounds warning:', e);
       }
     }
 
-    // 4. Plot Healthcare Facilities
+    // 4. Plot Healthcare Facilities (Hospitals)
     Object.entries(HOSPITAL_COORDS).forEach(([hospName, coords]) => {
       const hospIcon = L.divIcon({
         className: 'custom-hosp-marker',
@@ -460,11 +370,13 @@ const MapManager = {
     });
 
     setTimeout(() => {
-      if (this.map) this.map.invalidateSize();
-    }, 100);
-    setTimeout(() => {
-      if (this.map) this.map.invalidateSize();
-    }, 350);
+      if (this.map) {
+        this.map.invalidateSize();
+        if (this.geoDataBounds && this.geoDataBounds.isValid()) {
+          this.map.fitBounds(this.geoDataBounds, { padding: [25, 25] });
+        }
+      }
+    }, 150);
   },
 
   addFloatingCards() {
@@ -527,7 +439,7 @@ const MapManager = {
           <span style="color: #2563eb;">📊</span> Case Density
         </div>
         <div style="font-size: 0.75rem; color: #334155; line-height: 1.7;">
-          <div style="display: flex; align-items: center; gap: 8px;"><div style="width:14px; height:12px; background:#dc2626; border-radius:2px;"></div> Critical / High</div>
+          <div style="display: flex; align-items: center; gap: 8px;"><div style="width:14px; height:12px; background:#b91c1c; border-radius:2px;"></div> Critical / High</div>
           <div style="display: flex; align-items: center; gap: 8px;"><div style="width:14px; height:12px; background:#ea580c; border-radius:2px;"></div> Moderate-High</div>
           <div style="display: flex; align-items: center; gap: 8px;"><div style="width:14px; height:12px; background:#f59e0b; border-radius:2px;"></div> Moderate</div>
           <div style="display: flex; align-items: center; gap: 8px;"><div style="width:14px; height:12px; background:#fde047; border-radius:2px; border:1px solid #cbd5e1;"></div> Low Cases</div>
@@ -550,76 +462,5 @@ const MapManager = {
     if (elDengue) elDengue.textContent = counts.Dengue || 0;
     if (elMalaria) elMalaria.textContent = counts.Malaria || 0;
     if (elJE) elJE.textContent = counts.JE || 0;
-  },
-
-  bindControlsEvents() {
-    // Mode Switcher Radio buttons
-    const radios = document.querySelectorAll('input[name="mapViewMode"]');
-    radios.forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        this.mapViewMode = e.target.value;
-        this.render(this.currentPatients);
-      });
-    });
-
-    // Outbreak Playback Button
-    const btnPlayback = document.getElementById('btn-outbreak-playback');
-    if (btnPlayback) {
-      btnPlayback.addEventListener('click', () => {
-        this.togglePlayback();
-      });
-    }
-  },
-
-  togglePlayback() {
-    if (this.isPlaying) {
-      this.stopPlayback();
-    } else {
-      this.startPlayback();
-    }
-  },
-
-  startPlayback() {
-    if (!this.currentPatients || this.currentPatients.length === 0) return;
-    
-    // Sort unique dates
-    const dateSet = new Set();
-    this.currentPatients.forEach(p => {
-      if (p.rawDate || p.Date) dateSet.add(p.rawDate || p.Date);
-    });
-    this.uniqueDates = Array.from(dateSet).sort();
-    if (this.uniqueDates.length === 0) return;
-
-    this.isPlaying = true;
-    this.playbackIndex = 0;
-    const btnPlayback = document.getElementById('btn-outbreak-playback');
-    if (btnPlayback) {
-      btnPlayback.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Playback`;
-      btnPlayback.style.background = '#fef2f2';
-      btnPlayback.style.color = '#dc2626';
-    }
-
-    if (this.playbackTimer) clearInterval(this.playbackTimer);
-
-    this.playbackTimer = setInterval(() => {
-      if (this.playbackIndex >= this.uniqueDates.length) {
-        this.stopPlayback();
-        return;
-      }
-      const cutoffDate = this.uniqueDates[this.playbackIndex];
-      const filtered = this.currentPatients.filter(p => (p.rawDate || p.Date) <= cutoffDate);
-      this.render(filtered);
-      this.playbackIndex++;
-    }, 800);
-  },
-
-  stopPlayback() {
-    this.isPlaying = false;
-    if (this.playbackTimer) clearInterval(this.playbackTimer);
-    const btnPlayback = document.getElementById('btn-outbreak-playback');
-    if (btnPlayback) {
-      btnPlayback.innerHTML = `<i class="fa-solid fa-film"></i> Epidemic Outbreak Playback`;
-    }
-    this.render(this.currentPatients);
   }
 };
