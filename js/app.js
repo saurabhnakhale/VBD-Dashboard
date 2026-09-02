@@ -118,6 +118,46 @@ document.addEventListener('click', (e) => {
 });
 
 const App = {
+
+  initThemeToggle() {
+    const btn = document.getElementById('theme-toggle-btn');
+    const icon = document.getElementById('theme-toggle-icon');
+    const text = document.getElementById('theme-toggle-text');
+
+    const applyTheme = (theme) => {
+      document.documentElement.setAttribute('data-theme', theme);
+      try { localStorage.setItem('vbd-theme', theme); } catch(e){}
+
+      if (btn && icon && text) {
+        if (theme === 'light') {
+          icon.className = 'fa-solid fa-sun';
+          icon.style.color = '#f59e0b';
+          text.textContent = 'Light Mode';
+        } else {
+          icon.className = 'fa-solid fa-moon';
+          icon.style.color = '#38bdf8';
+          text.textContent = 'Dark Mode';
+        }
+      }
+      if (typeof ChartManager !== 'undefined' && ChartManager.currentPatients) {
+        ChartManager.render(ChartManager.currentPatients);
+      }
+    };
+
+    let savedTheme = 'dark';
+    try { savedTheme = localStorage.getItem('vbd-theme') || 'dark'; } catch(e){}
+    applyTheme(savedTheme);
+
+    if (btn && !btn.dataset.themeBound) {
+      btn.dataset.themeBound = 'true';
+      btn.addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme') || 'dark';
+        const nextTheme = current === 'dark' ? 'light' : 'dark';
+        applyTheme(nextTheme);
+      });
+    }
+  },
+
   allPatients: [],
   filteredPatients: [],
   highRiskAreas: [],
@@ -127,6 +167,7 @@ const App = {
   pageSize: 15,
 
   async init() {
+    this.initThemeToggle();
     console.log("[App] Starting Vector-Borne Disease Dashboard...");
     
     this.purgeLegacyContainers();

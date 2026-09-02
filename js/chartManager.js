@@ -11,7 +11,8 @@ const ChartManager = {
 
   init() {
     Chart.defaults.font.family = "'Plus Jakarta Sans', sans-serif";
-    Chart.defaults.color = '#94a3b8';
+    const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+    Chart.defaults.color = isLight ? '#334155' : '#94a3b8';
     Chart.defaults.plugins.tooltip.padding = 12;
     Chart.defaults.plugins.tooltip.borderRadius = 8;
     Chart.defaults.plugins.tooltip.backgroundColor = 'rgba(15, 23, 42, 0.95)';
