@@ -5,6 +5,7 @@
  * 3. Layer selector box (Default OSM, Clean Gray, Satellite, Topographic)
  * 4. Target re-centering button (🎯) & Zoom +/- controls
  * 5. Floating Disease Types & Case Density panels
+ * 6. Auto-zooms by default to fill the map window right to the edges
  */
 
 // Hospital Locations (Healthcare Facilities)
@@ -47,7 +48,7 @@ const MapManager = {
       // 1. Initialize Map centered on Nagpur
       this.map = L.map('map-container', {
         center: [21.1458, 79.0882],
-        zoom: 12,
+        zoom: 13,
         zoomControl: false,
         attributionControl: false
       });
@@ -166,9 +167,12 @@ const MapManager = {
   recenterMap() {
     if (!this.map) return;
     if (this.geoDataBounds && this.geoDataBounds.isValid()) {
-      this.map.fitBounds(this.geoDataBounds, { padding: [25, 25] });
+      this.map.fitBounds(this.geoDataBounds, { padding: [10, 10] });
+      const fitZ = this.map.getBoundsZoom(this.geoDataBounds);
+      const targetZoom = Math.max(fitZ, 13);
+      this.map.setView(this.geoDataBounds.getCenter(), targetZoom);
     } else {
-      this.map.setView([21.1458, 79.0882], 12);
+      this.map.setView([21.1458, 79.0882], 13);
     }
   },
 
@@ -343,7 +347,10 @@ const MapManager = {
       try {
         this.geoDataBounds = geoJsonLayer.getBounds();
         if (this.geoDataBounds.isValid()) {
-          this.map.fitBounds(this.geoDataBounds, { padding: [25, 25] });
+          this.map.fitBounds(this.geoDataBounds, { padding: [10, 10] });
+          const fitZ = this.map.getBoundsZoom(this.geoDataBounds);
+          const targetZoom = Math.max(fitZ, 13);
+          this.map.setView(this.geoDataBounds.getCenter(), targetZoom);
         }
       } catch (e) {
         console.warn('fitBounds warning:', e);
@@ -373,10 +380,13 @@ const MapManager = {
       if (this.map) {
         this.map.invalidateSize();
         if (this.geoDataBounds && this.geoDataBounds.isValid()) {
-          this.map.fitBounds(this.geoDataBounds, { padding: [25, 25] });
+          this.map.fitBounds(this.geoDataBounds, { padding: [10, 10] });
+          const fitZ = this.map.getBoundsZoom(this.geoDataBounds);
+          const targetZoom = Math.max(fitZ, 13);
+          this.map.setView(this.geoDataBounds.getCenter(), targetZoom);
         }
       }
-    }, 150);
+    }, 200);
   },
 
   addFloatingCards() {
