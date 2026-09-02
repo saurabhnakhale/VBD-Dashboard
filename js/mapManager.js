@@ -1,11 +1,15 @@
 /**
- * MapManager.js - Leaflet.js GIS Spatial Mapping Engine
- * Integrated with 38 Ward GeoJSON boundaries (WARDS_GEOJSON), Ward-to-Zone Mapping (WARD_ZONE_MAPPING),
- * choropleth polygons with case heat density, centroid label badges, and healthcare nodes.
- * Designed to fit seamlessly into the dark theme dashboard aesthetic.
+ * MapManager.js - GIS Spatial Mapping Engine
+ * Complete implementation matching user's reference images:
+ * 1. Expandable Layer Control Box (Default OSM, Clean Gray, Satellite View, Topographic Map)
+ * 2. Map Centering Target Icon Button (re-centers & fits bounds to Nagpur Municipal Corporation)
+ * 3. Zoom Controls (+ / -)
+ * 4. Centroid Ward Badges (9, 26, 52, 29, 43, 34, 117, etc.)
+ * 5. Disease Types & Case Density Floating UI Panels
+ * 6. Time-Series Epidemic Outbreak Playback & Map View Modes
  */
 
-// Coordinates for Nagpur Localities & Landmarks
+// Locality & Hospital Coordinates
 const LOCALITY_COORDS = {
   "Borgaon": [21.1850, 79.0550],
   "Bhupesh Nagar": [21.1880, 79.0520],
@@ -43,7 +47,6 @@ const LOCALITY_COORDS = {
   "Vaishali Nagar": [21.1850, 79.1150]
 };
 
-// Hospital Locations
 const HOSPITAL_COORDS = {
   "IGMC": [21.1540, 79.0880],
   "KT Nagar UPHC": [21.1730, 79.0530],
@@ -59,12 +62,24 @@ const HOSPITAL_COORDS = {
 
 const MapManager = {
   map: null,
-  markersGroup: null,
-  highRiskGroup: null,
   geoJsonGroup: null,
   wardBadgesGroup: null,
-  geoJsonData: null,
-  hasFittedBounds: false,
+  markersGroup: null,
+  heatGlowGroup: null,
+  
+  // Layer Base Maps (100% Free, NO API KEY)
+  baseLayers: {},
+  activeBaseLayer: null,
+
+  currentPatients: [],
+  geoDataBounds: null,
+  mapViewMode: 'cluster', // 'cluster', 'wardCount', 'allPoints'
+
+  // Playback states
+  isPlaying: false,
+  playbackTimer: null,
+  playbackIndex: 0,
+  uniqueDates: [],
 
   init() {
     const container = document.getElementById('map-container');
@@ -76,43 +91,137 @@ const MapManager = {
     }
 
     try {
-      // Center on Nagpur
+      // 1. Initialize Map centered on Nagpur
       this.map = L.map('map-container', {
         center: [21.1458, 79.0882],
         zoom: 12,
-        zoomControl: true
+        zoomControl: false, // We will add custom styled zoom & center controls
+        attributionControl: false
       });
 
-      // Primary Dark Tile Layer: Esri World Dark Gray Canvas (100% Free, No API Key Required)
-      const darkLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
-        attribution: '&copy; Esri, HERE, Garmin, FAO, NOAA, USGS, NGA, EPA, USDA, NPS',
-        maxZoom: 19
-      });
+      // 2. Base Layers Definition (100% Free, No API Key Watermarks)
+      this.baseLayers = {
+        'Default Map (OSM)': L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }),
+        'Clean Gray Map (Free)': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: '&copy; Esri, HERE, Garmin'
+        }),
+        'Satellite View (Free)': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: '&copy; Esri, Maxar, Earthstar Geographics'
+        }),
+        'Topographic Map (Free)': L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
+          maxZoom: 19,
+          attribution: '&copy; Esri, HERE, Garmin, Intermap'
+        })
+      };
 
-      // Fallback Tile Layer: OpenStreetMap Standard (100% Free, No API Key Required)
-      const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19
-      });
+      // Set default base layer to OSM
+      this.activeBaseLayer = this.baseLayers['Default Map (OSM)'];
+      this.activeBaseLayer.addTo(this.map);
 
-      darkLayer.on('tileerror', () => {
-        console.warn('[MapManager] Primary tiles failed, switching to OpenStreetMap fallback.');
-        if (this.map.hasLayer(darkLayer)) {
-          this.map.removeLayer(darkLayer);
-          osmLayer.addTo(this.map);
-        }
-      });
-
-      darkLayer.addTo(this.map);
-
-      this.highRiskGroup = L.layerGroup().addTo(this.map);
+      // 3. Initialize Feature Groups
+      this.heatGlowGroup = L.layerGroup().addTo(this.map);
       this.geoJsonGroup = L.layerGroup().addTo(this.map);
       this.wardBadgesGroup = L.layerGroup().addTo(this.map);
       this.markersGroup = L.layerGroup().addTo(this.map);
 
-      this.addMapLegend();
+      // 4. Add Top-Right Controls (Layer Selector Box + Centering Target + Zoom +/-)
+      this.addTopRightControls();
+
+      // 5. Add Bottom-Left Floating Cards (Disease Types & Case Density)
+      this.addFloatingCards();
+
+      // 6. Bind Mode Switcher & Outbreak Playback Event Listeners
+      this.bindControlsEvents();
+
     } catch (err) {
       console.error('[MapManager] Error initializing Leaflet map:', err);
+    }
+  },
+
+  addTopRightControls() {
+    // A. Leaflet Expandable Layer Control Box (Top Right)
+    const layerControl = L.control.layers(this.baseLayers, null, {
+      position: 'topright',
+      collapsed: true
+    });
+    layerControl.addTo(this.map);
+
+    // Customize Layer Control Box HTML labels matching Image 1
+    setTimeout(() => {
+      const container = layerControl.getContainer();
+      if (container) {
+        container.style.boxShadow = '0 2px 10px rgba(0,0,0,0.15)';
+        container.style.borderRadius = '8px';
+        container.style.border = '1px solid #cbd5e1';
+      }
+    }, 100);
+
+    // B. Custom Map Control Bar (Target / Re-center + Zoom +/- Stacked Vertically)
+    const customControl = L.control({ position: 'topright' });
+    customControl.onAdd = () => {
+      const div = L.DomUtil.create('div', 'map-custom-right-stack');
+      div.style.display = 'flex';
+      div.style.flexDirection = 'column';
+      div.style.gap = '6px';
+      div.style.marginTop = '10px';
+
+      div.innerHTML = `
+        <!-- Map Centering Target Icon Button (Target Crosshair) -->
+        <button id="btn-recenter-map" title="Re-center & Fit Map to Nagpur Boundaries" style="width: 32px; height: 32px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #dc2626; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 14px; transition: all 0.2s ease;">
+          <i class="fa-solid fa-bullseye"></i>
+        </button>
+
+        <!-- Zoom In Button -->
+        <button id="btn-zoom-in" title="Zoom In" style="width: 32px; height: 32px; background: #ffffff; border: 1px solid #cbd5e1; border-top-left-radius: 6px; border-top-right-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #1e293b; font-weight: bold; font-size: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+          +
+        </button>
+        <!-- Zoom Out Button -->
+        <button id="btn-zoom-out" title="Zoom Out" style="width: 32px; height: 32px; background: #ffffff; border: 1px solid #cbd5e1; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; margin-top: -6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #1e293b; font-weight: bold; font-size: 16px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+          −
+        </button>
+      `;
+
+      // Prevent map drag when clicking controls
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    };
+    customControl.addTo(this.map);
+
+    // Bind Centering & Zoom Button Click Handlers
+    setTimeout(() => {
+      const btnCenter = document.getElementById('btn-recenter-map');
+      const btnZoomIn = document.getElementById('btn-zoom-in');
+      const btnZoomOut = document.getElementById('btn-zoom-out');
+
+      if (btnCenter) {
+        btnCenter.addEventListener('click', () => {
+          this.recenterMap();
+        });
+      }
+      if (btnZoomIn) {
+        btnZoomIn.addEventListener('click', () => {
+          if (this.map) this.map.zoomIn();
+        });
+      }
+      if (btnZoomOut) {
+        btnZoomOut.addEventListener('click', () => {
+          if (this.map) this.map.zoomOut();
+        });
+      }
+    }, 200);
+  },
+
+  recenterMap() {
+    if (!this.map) return;
+    if (this.geoDataBounds && this.geoDataBounds.isValid()) {
+      this.map.fitBounds(this.geoDataBounds, { padding: [25, 25] });
+    } else {
+      this.map.setView([21.1458, 79.0882], 12);
     }
   },
 
@@ -126,7 +235,9 @@ const MapManager = {
     this.init();
     if (!this.map) return;
 
-    this.highRiskGroup.clearLayers();
+    this.currentPatients = patients || [];
+
+    this.heatGlowGroup.clearLayers();
     this.geoJsonGroup.clearLayers();
     this.wardBadgesGroup.clearLayers();
     this.markersGroup.clearLayers();
@@ -148,10 +259,11 @@ const MapManager = {
       });
     }
 
-    // 2. Calculate per-prabhag case breakdown
+    // 2. Calculate per-prabhag & disease counts
+    const totalCounts = { Chikungunya: 0, Dengue: 0, Malaria: 0, JE: 0 };
     const prabhagCounts = {};
     for (let p = 1; p <= 38; p++) {
-      prabhagCounts[p] = { Dengue: 0, Chikungunya: 0, Malaria: 0, ScrubTyphus: 0, Total: 0 };
+      prabhagCounts[p] = { Dengue: 0, Chikungunya: 0, Malaria: 0, JE: 0, Total: 0 };
     }
 
     if (Array.isArray(patients)) {
@@ -159,19 +271,56 @@ const MapManager = {
         let pNum = patient.prabhagNum || this.extractPrabhagNumber(patient.prabhag);
         if (!pNum && patient.prabhag) pNum = parseInt(patient.prabhag, 10);
 
-        if (pNum && prabhagCounts[pNum]) {
-          const dStr = (patient.disease || '').toLowerCase();
-          if (dStr.includes('chikun')) prabhagCounts[pNum].Chikungunya++;
-          else if (dStr.includes('malaria')) prabhagCounts[pNum].Malaria++;
-          else if (dStr.includes('japanese') || dStr.includes('encephalitis') || dStr.includes('je') || dStr.includes('scrub') || dStr.includes('typhus')) prabhagCounts[pNum].ScrubTyphus++;
-          else prabhagCounts[pNum].Dengue++;
+        const dStr = (patient.disease || '').toLowerCase();
+        let diseaseCat = 'Dengue';
 
+        if (dStr.includes('chikun')) {
+          diseaseCat = 'Chikungunya';
+          totalCounts.Chikungunya++;
+        } else if (dStr.includes('malaria')) {
+          diseaseCat = 'Malaria';
+          totalCounts.Malaria++;
+        } else if (dStr.includes('je') || dStr.includes('encephalitis') || dStr.includes('scrub') || dStr.includes('typhus')) {
+          diseaseCat = 'JE';
+          totalCounts.JE++;
+        } else {
+          diseaseCat = 'Dengue';
+          totalCounts.Dengue++;
+        }
+
+        if (pNum && prabhagCounts[pNum]) {
+          prabhagCounts[pNum][diseaseCat]++;
           prabhagCounts[pNum].Total++;
+        }
+
+        // Plot Point Markers if mode is 'cluster' or 'allPoints'
+        if ((this.mapViewMode === 'cluster' || this.mapViewMode === 'allPoints') && (patient.lat || patient.latitude || LOCALITY_COORDS[patient.locality])) {
+          const lat = patient.lat || patient.latitude || LOCALITY_COORDS[patient.locality]?.[0];
+          const lng = patient.lng || patient.longitude || LOCALITY_COORDS[patient.locality]?.[1];
+          if (lat && lng) {
+            let mColor = '#2563eb';
+            if (diseaseCat === 'Dengue') mColor = '#ea580c';
+            else if (diseaseCat === 'Malaria') mColor = '#1e1b4b';
+            else if (diseaseCat === 'JE') mColor = '#a855f7';
+
+            const pointMarker = L.circleMarker([lat, lng], {
+              radius: 5,
+              fillColor: mColor,
+              color: '#ffffff',
+              weight: 1.5,
+              fillOpacity: 0.9
+            });
+            pointMarker.bindPopup(`<b>${patient.name || 'Patient'}</b><br/>Disease: ${patient.disease}<br/>Prabhag: ${pNum || 'N/A'}`);
+            this.markersGroup.addLayer(pointMarker);
+          }
         }
       });
     }
 
-    // 3. Load bundled GeoJSON features (WARDS_GEOJSON)
+    // Update Floating Disease Stats Card
+    this.updateDiseaseStatsCard(totalCounts);
+
+    // 3. Render Ward Choropleth Polygons (WARDS_GEOJSON)
     let geoData = (typeof WARDS_GEOJSON !== 'undefined' && WARDS_GEOJSON) ? WARDS_GEOJSON : this.geoJsonData;
 
     if (geoData) {
@@ -181,62 +330,53 @@ const MapManager = {
           const pNum = this.extractPrabhagNumber(rawName);
           const count = pNum && prabhagCounts[pNum] ? prabhagCounts[pNum].Total : 0;
 
-          let fillColor = '#6366f1';
-          let strokeColor = '#38bdf8';
-          let weight = 1.8;
-          let fillOpacity = 0.35;
+          // Image Color Density Scheme
+          let fillColor = '#dcfce7'; // Zero Cases
+          let fillOpacity = 0.85;
 
-          if (count > 15) {
-            fillColor = '#ef4444';
-            strokeColor = '#f43f5e';
-            weight = 2.5;
-            fillOpacity = 0.75;
-          } else if (count > 8) {
-            fillColor = '#ec4899';
-            strokeColor = '#f472b6';
-            weight = 2.2;
-            fillOpacity = 0.65;
-          } else if (count > 3) {
-            fillColor = '#f59e0b';
-            strokeColor = '#fbbf24';
-            weight = 2.0;
-            fillOpacity = 0.55;
-          } else if (count > 0) {
-            fillColor = '#06b6d4';
-            strokeColor = '#22d3ee';
-            weight = 1.8;
-            fillOpacity = 0.45;
-          }
+          if (count > 15) fillColor = '#dc2626';     // Critical / High Red
+          else if (count >= 9) fillColor = '#ea580c'; // Moderate-High Orange
+          else if (count >= 4) fillColor = '#f59e0b'; // Moderate Yellow-Orange
+          else if (count >= 1) fillColor = '#fde047'; // Low Cases Yellow
+          else fillColor = '#dcfce7';                 // Zero Cases Light Green
 
           return {
             fillColor: fillColor,
             fillOpacity: fillOpacity,
-            color: strokeColor,
-            weight: weight,
-            opacity: 0.95
+            color: '#1d4ed8', // Crisp blue boundary outline (Image 1 & 2 match)
+            weight: 2.2,
+            opacity: 1
           };
         },
         onEachFeature: (feature, layer) => {
           const rawName = (feature.properties?.name || 'Ward').trim();
           const pNum = this.extractPrabhagNumber(rawName);
           const mappedZone = (pNum && wardZoneLookup[pNum]) ? wardZoneLookup[pNum] : (wardZoneLookup[rawName] || 'Municipal Zone');
+          const pData = (pNum && prabhagCounts[pNum]) ? prabhagCounts[pNum] : { Total: 0, Dengue: 0, Chikungunya: 0, Malaria: 0, JE: 0 };
 
-          const pData = (pNum && prabhagCounts[pNum])
-            ? prabhagCounts[pNum]
-            : { Total: 0, Dengue: 0, Chikungunya: 0, Malaria: 0, ScrubTyphus: 0 };
-
-          // Centroid badge label
+          // Centroid Circular Ward Badge (Image Exact Match)
           try {
             const centroid = layer.getBounds().getCenter();
             if (pNum && centroid) {
-              const badgeClass = pData.Total > 0 ? 'ward-label-badge has-cases' : 'ward-label-badge';
-              const labelHtml = `<div class="${badgeClass}">P-${pNum}: ${pData.Total}</div>`;
               
+              // Radial Outbreak Heat Glow for High-Burden Wards
+              if (pData.Total >= 15) {
+                const glowCircle = L.circle(centroid, {
+                  radius: 1200,
+                  color: 'transparent',
+                  fillColor: '#dc2626',
+                  fillOpacity: 0.4,
+                  className: 'outbreak-heat-glow'
+                });
+                this.heatGlowGroup.addLayer(glowCircle);
+              }
+
+              // Circular Badge DivIcon
               const badgeIcon = L.divIcon({
-                className: 'custom-ward-badge-marker',
-                html: labelHtml,
-                iconSize: [60, 20],
-                iconAnchor: [30, 10]
+                className: 'ward-centroid-badge-wrapper',
+                html: `<div class="ward-centroid-circle-badge ${pData.Total > 15 ? 'badge-critical' : (pData.Total > 0 ? 'badge-cases' : 'badge-zero')}">${pNum}</div>`,
+                iconSize: [28, 28],
+                iconAnchor: [14, 14]
               });
 
               const badgeMarker = L.marker(centroid, { icon: badgeIcon, interactive: false });
@@ -248,18 +388,18 @@ const MapManager = {
 
           layer.bindPopup(`
             <div style="color: #0f172a; padding: 6px; min-width: 220px; font-family: sans-serif;">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                <strong style="color: #4f46e5; font-size: 14px;">🏛️ Prabhag No. ${pNum || rawName}</strong>
-                <span style="background: #e0e7ff; color: #4338ca; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold;">P-${pNum || '?'}</span>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <strong style="color: #1d4ed8; font-size: 14px;">🏛️ Prabhag No. ${pNum || rawName}</strong>
+                <span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 800;">P-${pNum || '?'}</span>
               </div>
               <div style="color: #475569; font-size: 12px; margin-bottom: 6px;">
                 <b>Zone:</b> ${mappedZone}
               </div>
               
-              <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
+              <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; margin-bottom: 8px;">
                 <div style="font-size: 13px; font-weight: 800; color: #0f172a; display: flex; justify-content: space-between;">
                   <span>Active Patient Burden:</span>
-                  <span style="color: #dc2626; font-size: 14px;">${pData.Total} cases</span>
+                  <span style="color: #dc2626; font-size: 15px;">${pData.Total} cases</span>
                 </div>
               </div>
 
@@ -267,7 +407,7 @@ const MapManager = {
                 <div style="display: flex; justify-content: space-between;"><span>• 🦟 Dengue:</span> <b>${pData.Dengue}</b></div>
                 <div style="display: flex; justify-content: space-between;"><span>• 🦠 Chikungunya:</span> <b>${pData.Chikungunya}</b></div>
                 <div style="display: flex; justify-content: space-between;"><span>• 🔬 Malaria:</span> <b>${pData.Malaria}</b></div>
-                <div style="display: flex; justify-content: space-between;"><span>• 🐛 Scrub Typhus / JE:</span> <b>${pData.ScrubTyphus}</b></div>
+                <div style="display: flex; justify-content: space-between;"><span>• 🐛 JE / Scrub Typhus:</span> <b>${pData.JE}</b></div>
               </div>
             </div>
           `);
@@ -275,7 +415,7 @@ const MapManager = {
           layer.on({
             mouseover: (e) => {
               const l = e.target;
-              l.setStyle({ weight: 3.5, color: '#ffffff', fillOpacity: 0.85 });
+              l.setStyle({ weight: 4, color: '#000000', fillOpacity: 0.95 });
               if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
                 l.bringToFront();
               }
@@ -290,22 +430,23 @@ const MapManager = {
       this.geoJsonGroup.addLayer(geoJsonLayer);
 
       try {
-        const bounds = geoJsonLayer.getBounds();
-        if (bounds.isValid()) {
-          this.map.fitBounds(bounds, { padding: [20, 20] });
+        this.geoDataBounds = geoJsonLayer.getBounds();
+        if (this.geoDataBounds.isValid() && !this.hasFittedBounds) {
+          this.map.fitBounds(this.geoDataBounds, { padding: [25, 25] });
+          this.hasFittedBounds = true;
         }
       } catch (e) {
         console.warn('fitBounds warning:', e);
       }
     }
 
-    // 4. Plot Hospitals & Healthcare Facilities
+    // 4. Plot Healthcare Facilities
     Object.entries(HOSPITAL_COORDS).forEach(([hospName, coords]) => {
       const hospIcon = L.divIcon({
         className: 'custom-hosp-marker',
-        html: `<div style="background: #10b981; color: #fff; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: bold; border: 2px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"><i class="fa-solid fa-hospital"></i></div>`,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
+        html: `<div style="background: #10b981; color: #fff; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.3);"><i class="fa-solid fa-hospital"></i></div>`,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
       });
 
       const marker = L.marker(coords, { icon: hospIcon });
@@ -323,24 +464,162 @@ const MapManager = {
     }, 100);
     setTimeout(() => {
       if (this.map) this.map.invalidateSize();
-    }, 400);
+    }, 350);
   },
 
-  addMapLegend() {
-    const legend = L.control({ position: 'bottomright' });
-    legend.onAdd = function () {
-      const div = L.DomUtil.create('div', 'map-legend-box');
+  addFloatingCards() {
+    // Disease Types Card (Bottom Left)
+    const diseaseControl = L.control({ position: 'bottomleft' });
+    diseaseControl.onAdd = () => {
+      const div = L.DomUtil.create('div', 'map-floating-panel map-disease-panel');
+      div.style.background = '#ffffff';
+      div.style.padding = '10px 14px';
+      div.style.borderRadius = '12px';
+      div.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+      div.style.border = '1px solid #e2e8f0';
+      div.style.marginBottom = '10px';
+      div.style.minWidth = '160px';
+      div.style.fontFamily = "'Plus Jakarta Sans', sans-serif";
+
       div.innerHTML = `
-        <strong style="display:block; margin-bottom: 6px;">GIS Spatial Legend</strong>
-        <div class="map-legend-item"><div class="legend-color-dot" style="background: #ef4444;"></div> High Outbreak Ward (>15 cases)</div>
-        <div class="map-legend-item"><div class="legend-color-dot" style="background: #ec4899;"></div> Moderate Outbreak Ward (9-15 cases)</div>
-        <div class="map-legend-item"><div class="legend-color-dot" style="background: #f59e0b;"></div> Emerging Outbreak Ward (4-8 cases)</div>
-        <div class="map-legend-item"><div class="legend-color-dot" style="background: #06b6d4;"></div> Low Case Ward (1-3 cases)</div>
-        <div class="map-legend-item"><div class="legend-color-dot" style="background: #6366f1;"></div> Baseline Ward (0 cases)</div>
-        <div class="map-legend-item"><div class="legend-color-dot" style="background: #10b981;"></div> Hospital / UPHC Node</div>
+        <div style="font-size: 0.78rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+          <span style="color: #10b981;">🌿</span> Disease Types
+        </div>
+        <div style="font-size: 0.75rem; color: #334155; line-height: 1.7;">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#2563eb; margin-right:6px;"></span>Chikungunya</span>
+            <b id="map-stat-chikun" style="color:#1e293b; margin-left:12px;">--</b>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#ea580c; margin-right:6px;"></span>Dengue</span>
+            <b id="map-stat-dengue" style="color:#1e293b; margin-left:12px;">--</b>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#1e1b4b; margin-right:6px;"></span>Malaria</span>
+            <b id="map-stat-malaria" style="color:#1e293b; margin-left:12px;">--</b>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span><span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#a855f7; margin-right:6px;"></span>JE</span>
+            <b id="map-stat-je" style="color:#1e293b; margin-left:12px;">--</b>
+          </div>
+        </div>
       `;
+      L.DomEvent.disableClickPropagation(div);
       return div;
     };
-    legend.addTo(this.map);
+    diseaseControl.addTo(this.map);
+
+    // Case Density Legend Card (Bottom Left)
+    const densityControl = L.control({ position: 'bottomleft' });
+    densityControl.onAdd = () => {
+      const div = L.DomUtil.create('div', 'map-floating-panel map-density-panel');
+      div.style.background = '#ffffff';
+      div.style.padding = '10px 14px';
+      div.style.borderRadius = '12px';
+      div.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+      div.style.border = '1px solid #e2e8f0';
+      div.style.marginBottom = '10px';
+      div.style.minWidth = '160px';
+      div.style.fontFamily = "'Plus Jakarta Sans', sans-serif";
+
+      div.innerHTML = `
+        <div style="font-size: 0.78rem; font-weight: 800; color: #1e293b; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+          <span style="color: #2563eb;">📊</span> Case Density
+        </div>
+        <div style="font-size: 0.75rem; color: #334155; line-height: 1.7;">
+          <div style="display: flex; align-items: center; gap: 8px;"><div style="width:14px; height:12px; background:#dc2626; border-radius:2px;"></div> Critical / High</div>
+          <div style="display: flex; align-items: center; gap: 8px;"><div style="width:14px; height:12px; background:#ea580c; border-radius:2px;"></div> Moderate-High</div>
+          <div style="display: flex; align-items: center; gap: 8px;"><div style="width:14px; height:12px; background:#f59e0b; border-radius:2px;"></div> Moderate</div>
+          <div style="display: flex; align-items: center; gap: 8px;"><div style="width:14px; height:12px; background:#fde047; border-radius:2px; border:1px solid #cbd5e1;"></div> Low Cases</div>
+          <div style="display: flex; align-items: center; gap: 8px;"><div style="width:14px; height:12px; background:#dcfce7; border-radius:2px; border:1px solid #cbd5e1;"></div> Zero Cases</div>
+        </div>
+      `;
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    };
+    densityControl.addTo(this.map);
+  },
+
+  updateDiseaseStatsCard(counts) {
+    const elChikun = document.getElementById('map-stat-chikun');
+    const elDengue = document.getElementById('map-stat-dengue');
+    const elMalaria = document.getElementById('map-stat-malaria');
+    const elJE = document.getElementById('map-stat-je');
+
+    if (elChikun) elChikun.textContent = counts.Chikungunya || 0;
+    if (elDengue) elDengue.textContent = counts.Dengue || 0;
+    if (elMalaria) elMalaria.textContent = counts.Malaria || 0;
+    if (elJE) elJE.textContent = counts.JE || 0;
+  },
+
+  bindControlsEvents() {
+    // Mode Switcher Radio buttons
+    const radios = document.querySelectorAll('input[name="mapViewMode"]');
+    radios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        this.mapViewMode = e.target.value;
+        this.render(this.currentPatients);
+      });
+    });
+
+    // Outbreak Playback Button
+    const btnPlayback = document.getElementById('btn-outbreak-playback');
+    if (btnPlayback) {
+      btnPlayback.addEventListener('click', () => {
+        this.togglePlayback();
+      });
+    }
+  },
+
+  togglePlayback() {
+    if (this.isPlaying) {
+      this.stopPlayback();
+    } else {
+      this.startPlayback();
+    }
+  },
+
+  startPlayback() {
+    if (!this.currentPatients || this.currentPatients.length === 0) return;
+    
+    // Sort unique dates
+    const dateSet = new Set();
+    this.currentPatients.forEach(p => {
+      if (p.rawDate || p.Date) dateSet.add(p.rawDate || p.Date);
+    });
+    this.uniqueDates = Array.from(dateSet).sort();
+    if (this.uniqueDates.length === 0) return;
+
+    this.isPlaying = true;
+    this.playbackIndex = 0;
+    const btnPlayback = document.getElementById('btn-outbreak-playback');
+    if (btnPlayback) {
+      btnPlayback.innerHTML = `<i class="fa-solid fa-pause"></i> Pause Playback`;
+      btnPlayback.style.background = '#fef2f2';
+      btnPlayback.style.color = '#dc2626';
+    }
+
+    if (this.playbackTimer) clearInterval(this.playbackTimer);
+
+    this.playbackTimer = setInterval(() => {
+      if (this.playbackIndex >= this.uniqueDates.length) {
+        this.stopPlayback();
+        return;
+      }
+      const cutoffDate = this.uniqueDates[this.playbackIndex];
+      const filtered = this.currentPatients.filter(p => (p.rawDate || p.Date) <= cutoffDate);
+      this.render(filtered);
+      this.playbackIndex++;
+    }, 800);
+  },
+
+  stopPlayback() {
+    this.isPlaying = false;
+    if (this.playbackTimer) clearInterval(this.playbackTimer);
+    const btnPlayback = document.getElementById('btn-outbreak-playback');
+    if (btnPlayback) {
+      btnPlayback.innerHTML = `<i class="fa-solid fa-film"></i> Epidemic Outbreak Playback`;
+    }
+    this.render(this.currentPatients);
   }
 };
