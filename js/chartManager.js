@@ -154,30 +154,50 @@ const ChartManager = {
       { key: 'Scrub Typhus', label: 'Scrub Typhus', color: '#ef4444', fill: 'rgba(239, 68, 68, 0.2)' }
     ];
 
-    const getDateKey = (p) => {
-      let d = p.dateObj || (p.parsedDate ? new Date(p.parsedDate) : null);
-      if (!d || isNaN(d.getTime())) return null;
+        const getDateKey = (p) => {
+      let d = null;
+      if (p.dateObj && !isNaN(p.dateObj.getTime())) {
+        d = new Date(p.dateObj.getTime());
+      } else if (p.parsedDate) {
+        const parsed = new Date(p.parsedDate);
+        if (!isNaN(parsed.getTime())) d = parsed;
+      }
 
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
+      if (granularity === 'yearly') {
+        if (d) return String(d.getFullYear());
+        if (p.year) return String(p.year);
+        return null;
+      }
 
-      if (granularity === 'daily') {
-        return `${yyyy}-${mm}-${dd}`;
-      } else if (granularity === 'weekly') {
+      if (granularity === 'monthly') {
+        if (d) {
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          return `${monthNames[d.getMonth()]} ${d.getFullYear()}`;
+        }
+        if (p.month && p.year) {
+          const mStr = p.month.charAt(0).toUpperCase() + p.month.slice(1).toLowerCase();
+          return `${mStr} ${p.year}`;
+        }
+        return null;
+      }
+
+      if (granularity === 'weekly') {
+        if (!d) return null;
         const day = d.getDay();
         const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        const mon = new Date(d.setDate(diff));
+        const mon = new Date(d.getFullYear(), d.getMonth(), diff);
         const mYyyy = mon.getFullYear();
         const mMm = String(mon.getMonth() + 1).padStart(2, '0');
         const mDd = String(mon.getDate()).padStart(2, '0');
         return `${mYyyy}-${mMm}-${mDd}`;
-      } else if (granularity === 'monthly') {
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        return `${monthNames[d.getMonth()]} ${yyyy}`;
-      } else { // yearly
-        return `${yyyy}`;
       }
+
+      // daily
+      if (!d) return null;
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
     };
 
     const dateMap = {};
