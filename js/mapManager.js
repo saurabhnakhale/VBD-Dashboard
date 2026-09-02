@@ -3,9 +3,9 @@
  * 1. 38 Ward GeoJSON choropleth polygons with density heat fill & crisp blue borders
  * 2. Centroid circular ward badges (P-1 to P-38)
  * 3. Layer selector box (Default OSM, Clean Gray, Satellite, Topographic)
- * 4. Target re-centering button (🎯) & Zoom +/- controls
- * 5. Floating Disease Types & Case Density panels
- * 6. Auto-zooms by default to fill the map window right to the edges
+ * 4. Target re-centering button (🎯) - Fits bounds smoothly without over-zooming
+ * 5. Zoom controls (+ / -)
+ * 6. Floating Disease Types & Case Density panels
  */
 
 // Hospital Locations (Healthcare Facilities)
@@ -48,7 +48,7 @@ const MapManager = {
       // 1. Initialize Map centered on Nagpur
       this.map = L.map('map-container', {
         center: [21.1458, 79.0882],
-        zoom: 13,
+        zoom: 12,
         zoomControl: false,
         attributionControl: false
       });
@@ -121,7 +121,7 @@ const MapManager = {
 
       div.innerHTML = `
         <!-- Map Centering Target Icon Button (Target Crosshair) -->
-        <button id="btn-recenter-map" title="Re-center & Fit Map to Nagpur Boundaries" style="width: 32px; height: 32px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #dc2626; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 14px; transition: all 0.2s ease;">
+        <button id="btn-recenter-map" title="Re-center Map to Nagpur Ward Boundaries" style="width: 32px; height: 32px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #dc2626; box-shadow: 0 2px 8px rgba(0,0,0,0.12); font-size: 14px; transition: all 0.2s ease;">
           <i class="fa-solid fa-bullseye"></i>
         </button>
 
@@ -167,12 +167,9 @@ const MapManager = {
   recenterMap() {
     if (!this.map) return;
     if (this.geoDataBounds && this.geoDataBounds.isValid()) {
-      this.map.fitBounds(this.geoDataBounds, { padding: [10, 10] });
-      const fitZ = this.map.getBoundsZoom(this.geoDataBounds);
-      const targetZoom = Math.max(fitZ, 13);
-      this.map.setView(this.geoDataBounds.getCenter(), targetZoom);
+      this.map.fitBounds(this.geoDataBounds, { padding: [15, 15] });
     } else {
-      this.map.setView([21.1458, 79.0882], 13);
+      this.map.setView([21.1458, 79.0882], 12);
     }
   },
 
@@ -347,10 +344,7 @@ const MapManager = {
       try {
         this.geoDataBounds = geoJsonLayer.getBounds();
         if (this.geoDataBounds.isValid()) {
-          this.map.fitBounds(this.geoDataBounds, { padding: [10, 10] });
-          const fitZ = this.map.getBoundsZoom(this.geoDataBounds);
-          const targetZoom = Math.max(fitZ, 13);
-          this.map.setView(this.geoDataBounds.getCenter(), targetZoom);
+          this.map.fitBounds(this.geoDataBounds, { padding: [15, 15] });
         }
       } catch (e) {
         console.warn('fitBounds warning:', e);
@@ -380,10 +374,7 @@ const MapManager = {
       if (this.map) {
         this.map.invalidateSize();
         if (this.geoDataBounds && this.geoDataBounds.isValid()) {
-          this.map.fitBounds(this.geoDataBounds, { padding: [10, 10] });
-          const fitZ = this.map.getBoundsZoom(this.geoDataBounds);
-          const targetZoom = Math.max(fitZ, 13);
-          this.map.setView(this.geoDataBounds.getCenter(), targetZoom);
+          this.map.fitBounds(this.geoDataBounds, { padding: [15, 15] });
         }
       }
     }, 200);
