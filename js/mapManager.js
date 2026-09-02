@@ -3,9 +3,10 @@
  * 1. 38 Ward GeoJSON choropleth polygons with density heat fill & crisp blue borders
  * 2. Centroid circular ward badges (P-1 to P-38)
  * 3. Layer selector box (Default OSM, Clean Gray, Satellite, Topographic)
- * 4. Target re-centering button (🎯) - Fits bounds smoothly without over-zooming
+ * 4. Target re-centering button (🎯) - Centers & zooms to top/bottom boundary edge
  * 5. Zoom controls (+ / -)
  * 6. Floating Disease Types & Case Density panels
+ * 7. Default view zoomed in to fill top and bottom boundaries completely
  */
 
 // Hospital Locations (Healthcare Facilities)
@@ -45,10 +46,12 @@ const MapManager = {
     }
 
     try {
-      // 1. Initialize Map centered on Nagpur
+      // 1. Initialize Map centered on Nagpur with fractional zoom level for top/bottom edge fit
       this.map = L.map('map-container', {
         center: [21.1458, 79.0882],
-        zoom: 12,
+        zoom: 12.7,
+        zoomSnap: 0.1,
+        zoomDelta: 0.5,
         zoomControl: false,
         attributionControl: false
       });
@@ -167,9 +170,10 @@ const MapManager = {
   recenterMap() {
     if (!this.map) return;
     if (this.geoDataBounds && this.geoDataBounds.isValid()) {
-      this.map.fitBounds(this.geoDataBounds, { padding: [15, 15] });
+      const center = this.geoDataBounds.getCenter();
+      this.map.setView(center, 12.7, { animate: true });
     } else {
-      this.map.setView([21.1458, 79.0882], 12);
+      this.map.setView([21.1458, 79.0882], 12.7, { animate: true });
     }
   },
 
@@ -344,7 +348,8 @@ const MapManager = {
       try {
         this.geoDataBounds = geoJsonLayer.getBounds();
         if (this.geoDataBounds.isValid()) {
-          this.map.fitBounds(this.geoDataBounds, { padding: [15, 15] });
+          const center = this.geoDataBounds.getCenter();
+          this.map.setView(center, 12.7);
         }
       } catch (e) {
         console.warn('fitBounds warning:', e);
@@ -374,7 +379,8 @@ const MapManager = {
       if (this.map) {
         this.map.invalidateSize();
         if (this.geoDataBounds && this.geoDataBounds.isValid()) {
-          this.map.fitBounds(this.geoDataBounds, { padding: [15, 15] });
+          const center = this.geoDataBounds.getCenter();
+          this.map.setView(center, 12.7);
         }
       }
     }, 200);
