@@ -49,7 +49,7 @@ const MapManager = {
       // 1. Initialize Map centered on Nagpur with fractional zoom level for top/bottom edge fit
       this.map = L.map('map-container', {
         center: [21.1458, 79.0882],
-        zoom: 12.7,
+        zoom: 11.6,
         zoomSnap: 0.1,
         zoomDelta: 0.5,
         zoomControl: false,
@@ -171,9 +171,9 @@ const MapManager = {
     if (!this.map) return;
     if (this.geoDataBounds && this.geoDataBounds.isValid()) {
       const center = this.geoDataBounds.getCenter();
-      this.map.setView(center, 12.7, { animate: true });
+      this.map.fitBounds(this.geoDataBounds, { padding: [12, 12], animate: true });
     } else {
-      this.map.setView([21.1458, 79.0882], 12.7, { animate: true });
+      this.map.setView([21.1458, 79.0882], 11.6, { animate: true });
     }
   },
 
@@ -348,8 +348,7 @@ const MapManager = {
       try {
         this.geoDataBounds = geoJsonLayer.getBounds();
         if (this.geoDataBounds.isValid()) {
-          const center = this.geoDataBounds.getCenter();
-          this.map.setView(center, 12.7);
+          this.map.fitBounds(this.geoDataBounds, { padding: [12, 12] });
         }
       } catch (e) {
         console.warn('fitBounds warning:', e);
@@ -379,8 +378,7 @@ const MapManager = {
       if (this.map) {
         this.map.invalidateSize();
         if (this.geoDataBounds && this.geoDataBounds.isValid()) {
-          const center = this.geoDataBounds.getCenter();
-          this.map.setView(center, 12.7);
+          this.map.fitBounds(this.geoDataBounds, { padding: [12, 12] });
         }
       }
     }, 200);
